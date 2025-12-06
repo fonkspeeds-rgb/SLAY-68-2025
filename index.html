@@ -9,31 +9,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/12.6.0/firebase-storage.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/12.6.0/firebase-analytics.js"></script>
-    
+    <!-- Supabase -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
-        // Конфигурация Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyAsaHgWNIiXS7XcovOYS9p1-B73I5mUtws",
-            authDomain: "slayawards68.firebaseapp.com",
-            projectId: "slayawards68",
-            storageBucket: "slayawards68.firebasestorage.app",
-            messagingSenderId: "138561343844",
-            appId: "1:138561343844:web:42a8ec39649f475e762a71",
-            measurementId: "G-VKZSZQ9X2Q"
-        };
+        // ВАШИ ДАННЫЕ SUPABASE
+        const SUPABASE_URL = 'https://rqivomsnmddgbmubayta.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxaXZvbXNubWRkZ2JtdWJheXRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ5ODMyODEsImV4cCI6MjA4MDU1OTI4MX0.pJem52VCnL5_FbUX7HR66w4vwEgd7heQTUMo97kwJc8';
         
-        // Инициализация Firebase
-        firebase.initializeApp(firebaseConfig);
-        firebase.analytics();
-        
-        // Глобальные переменные для Firebase
-        const db = firebase.firestore();
-        const storage = firebase.storage();
+        // Создаем клиент Supabase
+        window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        console.log('✅ Supabase подключен');
     </script>
 </head>
 <body>
@@ -136,7 +121,7 @@
 
                     <!-- Видео контейнер -->
                     <div class="royal-video-container" id="video-slay-king">
-                        <!-- Видео загружается через JS -->
+                        <!-- Загрузится через JS -->
                     </div>
 
                     <div class="royal-body" id="kingContent">
@@ -163,7 +148,7 @@
 
                     <!-- Видео контейнер -->
                     <div class="royal-video-container" id="video-slay-queen">
-                        <!-- Видео загружается через JS -->
+                        <!-- Загрузится через JS -->
                     </div>
 
                     <div class="royal-body" id="queenContent">
@@ -188,7 +173,7 @@
             </div>
 
             <div class="categories-grid" id="categoriesContainer">
-                <!-- Загружается через JS -->
+                <!-- Загрузится через JS -->
             </div>
         </section>
     </main>
@@ -253,7 +238,7 @@
 
                         <!-- Список кандидатов -->
                         <div class="candidates-list" id="adminCandidatesList">
-                            <!-- Загружается через JS -->
+                            <!-- Загрузится через JS -->
                         </div>
                     </div>
 
@@ -268,6 +253,9 @@
                                 <div style="margin-top: 1rem;">
                                     <input type="text" id="youtubeUrl" placeholder="Или вставьте ссылку YouTube" 
                                            style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--card-border); background: rgba(255,255,255,0.1); color: var(--text-color);">
+                                    <button onclick="addYouTubeVideo()" style="margin-top: 0.5rem; width: 100%; padding: 0.75rem; background: #ff0000; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                                        <i class="fab fa-youtube"></i> Добавить YouTube видео
+                                    </button>
                                 </div>
                             </div>
                             <div class="video-preview" id="videoPreview"></div>
@@ -347,6 +335,7 @@
 
     <!-- Скрипты -->
     <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script src="supabase-service.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

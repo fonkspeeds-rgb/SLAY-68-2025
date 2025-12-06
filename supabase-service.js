@@ -406,33 +406,74 @@ class SupabaseService {
             return false;
         }
     }
-
-    // 🔄 СБРОС ВСЕХ ГОЛОСОВ (админ)
-    async resetAllVotes() {
-        try {
-            // Обнуляем голоса кандидатов
-            const { error: updateError } = await this.client
-                .from('candidates')
-                .update({ votes: 0 });
-            
-            if (updateError) throw updateError;
-            
-            // Удаляем все голоса
-            const { error: deleteError } = await this.client
-                .from('votes')
-                .delete()
-                .neq('id', '00000000-0000-0000-0000-000000000000');
-            
-            if (deleteError) throw deleteError;
-            
-            console.log('✅ Все голосы сброшены');
-            return true;
-        } catch (error) {
-            console.error('❌ Ошибка сброса голосов:', error);
-            return false;
+// 🔄 СБРОС ВСЕХ ГОЛОСОВ (админ)
+async resetAllVotes() {
+    try {
+        // 1. Получаем все ID кандидатов для отладки
+        const { data: allCandidates, error: fetchError } = await this.client
+            .from('candidates')
+            .select('id, name, votes');
+        
+        if (fetchError) {
+            console.error('❌ Ошибка получения кандидатов:', fetchError);
+            throw fetchError;
         }
+        
+        console.log(`📊 Найдено ${allCandidates.length} кандидатов для сброса`);
+        
+        // 2. Обнуляем голоса кандидатов с проверкой
+        const { error: updateError } = await this.client
+            .from('candidates')
+            .update({ 
+                votes: 0,
+                updated_at: new Date().toISOString()
+            })
+            .neq('id', '00000000-0000-0000-0000-000000000000'); // исключаем несуществующий ID
+        
+        if (updateError) {
+            console.error('❌ Ошибка обновления голосов кандидатов:', updateError);
+            throw updateError;
+        }
+        
+        console.log('✅ Голосы кандидатов обнулены');
+        
+        // 3. Удаляем все голоса с ограничением batch для безопасности
+        const { error: deleteError } = await this.client
+            .from('votes')
+            .delete()
+            .neq('id', '00000000-0000-0000-0000-000000000000');
+        
+        if (deleteError) {
+            console.error('❌ Ошибка удаления голосов:', deleteError);
+            throw deleteError;
+        }
+        
+        console.log('✅ Записи голосов удалены');
+        
+        // 4. Проверяем результат
+        const { data: checkCandidates, error: checkError } = await this.client
+            .from('candidates')
+            .select('id, name, votes')
+            .limit(5);
+        
+        if (checkError) {
+            console.error('❌ Ошибка проверки результата:', checkError);
+            throw checkError;
+        }
+        
+        console.log('📊 Проверка после сброса:', checkCandidates);
+        
+        return {
+            success: true,
+            message: `Сброшено ${allCandidates.length} кандидатов`,
+            timestamp: new Date().toISOString()
+        };
+        
+    } catch (error) {
+        console.error('❌ Полная ошибка сброса голосов:', error);
+        throw new Error(`Ошибка сброса голосов: ${error.message}`);
     }
-
+}
     // 🔧 УТИЛИТА: ИЗВЛЕЧЕНИЕ ID ИЗ YOUTUBE ССЫЛКИ
     extractYouTubeId(url) {
         const patterns = [

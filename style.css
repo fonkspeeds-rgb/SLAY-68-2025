@@ -1165,13 +1165,6 @@ body {
     transform: scale(1.05);
 }
 
-.hint {
-    color: var(--text-color);
-    opacity: 0.4;
-    font-size: 0.8rem;
-    margin-top: 1rem;
-}
-
 /* Табы админки */
 .tabs {
     display: flex;
@@ -1566,7 +1559,7 @@ body {
     to { transform: translateX(100%); opacity: 0; }
 }
 
-/* 📱 АДАПТИВНОСТЬ */
+/* 📱 ИСПРАВЛЕНИЯ ДЛЯ ТЕЛЕФОНОВ */
 @media (max-width: 768px) {
     .nav-container {
         padding: 0 1rem;
@@ -1644,7 +1637,8 @@ body {
         padding: 1rem 1.5rem;
     }
 }
-/* 📱 ИСПРАВЛЕНИЯ ДЛЯ ТЕЛЕФОНОВ */
+
+/* 📱 ИСПРАВЛЕНИЯ ДЛЯ ТЕЛЕФОНОВ (480px и меньше) */
 @media (max-width: 480px) {
     /* Исправление навигации */
     .nav-container {

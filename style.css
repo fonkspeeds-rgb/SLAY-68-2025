@@ -1926,3 +1926,179 @@ body {
         opacity: 0.9;
     }
 }
+/* 🔒 Стили для безопасности (добавить в конец файла) */
+
+.security-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.security-stat {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.security-stat .stat-label {
+    font-size: 0.85rem;
+    color: var(--text-color);
+    opacity: 0.7;
+    margin-bottom: 0.5rem;
+}
+
+.security-stat .stat-value {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--secondary);
+}
+
+.status-active {
+    color: var(--success) !important;
+}
+
+.status-inactive {
+    color: var(--danger) !important;
+}
+
+.security-controls {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.security-controls h5 {
+    margin-bottom: 1rem;
+    color: var(--secondary);
+    font-family: 'Orbitron', monospace;
+}
+
+.control-group {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+.control-group label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--text-color);
+    font-size: 0.9rem;
+}
+
+.control-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+}
+
+.control-group input[type="number"] {
+    width: 80px;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--card-border);
+    border-radius: 5px;
+    color: var(--text-color);
+    text-align: center;
+}
+
+.btn-warning {
+    background: rgba(255, 170, 0, 0.1) !important;
+    border-color: var(--warning) !important;
+    color: var(--warning) !important;
+}
+
+.btn-warning:hover {
+    background: rgba(255, 170, 0, 0.2) !important;
+}
+
+/* Логи безопасности */
+.security-log-item {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    border-left: 4px solid var(--primary);
+}
+
+.security-log-item.log-blocked {
+    border-left-color: var(--danger);
+    background: rgba(255, 56, 96, 0.05);
+}
+
+.security-log-item.log-success {
+    border-left-color: var(--success);
+    background: rgba(0, 255, 136, 0.05);
+}
+
+.security-log-item.log-info {
+    border-left-color: var(--secondary);
+    background: rgba(0, 255, 255, 0.05);
+}
+
+.log-time {
+    font-size: 0.8rem;
+    color: var(--text-color);
+    opacity: 0.6;
+    margin-bottom: 0.25rem;
+}
+
+.log-type {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+
+.log-message {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+
+.log-details {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.75rem;
+    color: var(--text-color);
+    opacity: 0.5;
+}
+
+/* Блокировка кнопок */
+.vote-btn-royal.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: rgba(128, 128, 128, 0.3) !important;
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.vote-btn-royal.disabled:hover {
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Индикатор защиты */
+.protection-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    background: rgba(0, 255, 136, 0.1);
+    border: 1px solid var(--success);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: var(--success);
+    margin-left: 1rem;
+}
+
+/* Уведомления безопасности */
+.notification.security {
+    border-color: var(--warning);
+    color: var(--warning);
+}

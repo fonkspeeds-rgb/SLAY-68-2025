@@ -726,3 +726,101 @@ class SupabaseService {
 // Создаем глобальный экземпляр
 window.SupabaseService = SupabaseService;
 console.log('✅ SupabaseService с защитой загружен');
+// 🔧 УТИЛИТА: ПРОВЕРКА ГОЛОСОВАНИЯ С ЛИМИТАМИ
+async checkVoteWithLimits(userId, fingerprint, categoryId) {
+    try {
+        // Используем нашу SQL функцию
+        const { data, error } = await this.client.rpc('check_vote_limits', {
+            p_user_id: userId,
+            p_fingerprint: fingerprint,
+            p_category_id: categoryId
+        });
+        
+        if (error) {
+            console.error('Ошибка проверки лимитов:', error);
+            return { canVote: false, reason: 'Ошибка проверки' };
+        }
+        
+        return {
+            canVote: data[0]?.can_vote || false,
+            reason: data[0]?.reason || 'Неизвестная причина',
+            votesLastHour: data[0]?.user_votes_last_hour || 0
+        };
+        
+    } catch (error) {
+        console.error('Исключение при проверке лимитов:', error);
+        return { canVote: false, reason: 'Ошибка системы' };
+    }
+}
+
+// 🔧 УТИЛИТА: ПРОВЕРКА УЖЕ ГОЛОСОВАЛ ЛИ
+async checkAlreadyVoted(userId, fingerprint, categoryId) {
+    try {
+        const { data, error } = await this.client.rpc('has_user_voted_in_category', {
+            p_user_id: userId,
+            p_category_id: categoryId,
+            p_fingerprint: fingerprint
+        });
+        
+        if (error) {
+            console.error('Ошибка проверки голосования:', error);
+            return false;
+        }
+        
+        return data;
+    } catch (error) {
+        console.error('Исключение при проверке:', error);
+        return false;
+    }
+}
+
+// 📊 ПОЛУЧЕНИЕ СТАТИСТИКИ ГОЛОСОВАНИЯ
+async getVotingStatistics() {
+    try {
+        // Общее количество голосов
+        const { data: candidates, error: candidatesError } = await this.client
+            .from('candidates')
+            .select('votes');
+        
+        if (candidatesError) throw candidatesError;
+        
+        const totalVotes = candidates.reduce((sum, c) => sum + (c.votes || 0), 0);
+        
+        // Уникальные пользователи
+        const { data: votes, error: votesError } = await this.client
+            .from('votes')
+            .select('user_id, fingerprint, created_at');
+        
+        if (votesError) throw votesError;
+        
+        const uniqueUsers = new Set(votes.map(v => v.user_id)).size;
+        
+        // Голоса за последние 24 часа
+        const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const recentVotes = votes.filter(v => new Date(v.created_at) > new Date(dayAgo)).length;
+        
+        // Блокировки
+        const { data: blockedVotes, error: blockedError } = await this.client
+            .from('security_logs')
+            .select('id')
+            .eq('event_type', 'vote_blocked');
+        
+        return {
+            totalVotes,
+            uniqueUsers,
+            recent24h: recentVotes,
+            blockedAttempts: blockedVotes?.length || 0,
+            totalVotesCount: votes?.length || 0
+        };
+        
+    } catch (error) {
+        console.error('Ошибка получения статистики:', error);
+        return {
+            totalVotes: 0,
+            uniqueUsers: 0,
+            recent24h: 0,
+            blockedAttempts: 0,
+            totalVotesCount: 0
+        };
+    }
+}

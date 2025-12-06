@@ -1,3 +1,5 @@
+[file name]: script.js
+[file content begin]
 // 🔧 КОНФИГУРАЦИЯ
 const CONFIG = {
     ADMIN_PASSWORD: "Marshlopopo228!",
@@ -148,7 +150,10 @@ function initLocalData() {
         ['meme-person', 'ЧЕЛОВЕК МЕМ-ГОДА', 'laugh-beam', '#00ff88'],
         ['event-year', 'МЕРОПРИЯТИЕ ГОДА', 'calendar-star', '#36d1dc'],
         ['ship-year', 'ПАРА(ШИП) ГОДА', 'heart', '#ff6584'],
-        ['dota-player', 'ДОТА ИГРОК ГОДА', 'gamepad', '#6c63ff']
+        ['dota-player', 'ДОТА ИГРОК ГОДА', 'gamepad', '#6c63ff'],
+        // ДОБАВЛЕННЫЕ КАТЕГОРИИ
+        ['delivery-year', 'ЗАВОЗ ГОДА', 'truck-fast', '#ff9800'],
+        ['style-year', 'СТИЛЬ ГОДА', 'tshirt', '#e91e63']
     ];
     
     otherCategories.forEach(([id, name, icon, color]) => {
@@ -1163,3 +1168,4 @@ function initParticles() {
         });
     }
 }
+[file content end]

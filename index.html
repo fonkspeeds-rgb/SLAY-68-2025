@@ -6,8 +6,35 @@
     <title>SLAY 68 | Космическое Голосование</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.6.0/firebase-storage.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.6.0/firebase-analytics.js"></script>
+    
+    <script>
+        // Конфигурация Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAsaHgWNIiXS7XcovOYS9p1-B73I5mUtws",
+            authDomain: "slayawards68.firebaseapp.com",
+            projectId: "slayawards68",
+            storageBucket: "slayawards68.firebasestorage.app",
+            messagingSenderId: "138561343844",
+            appId: "1:138561343844:web:42a8ec39649f475e762a71",
+            measurementId: "G-VKZSZQ9X2Q"
+        };
+        
+        // Инициализация Firebase
+        firebase.initializeApp(firebaseConfig);
+        firebase.analytics();
+        
+        // Глобальные переменные для Firebase
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+    </script>
 </head>
 <body>
     <!-- 🌌 Фон с частицами -->
@@ -190,6 +217,7 @@
                                 <i class="fas fa-sign-in-alt"></i>
                             </button>
                         </div>
+                        <p class="hint">Пароль: Marshlopopo228!</p>
                     </div>
                 </div>
 
@@ -235,8 +263,12 @@
                             <div class="upload-area" id="uploadArea">
                                 <i class="fas fa-video"></i>
                                 <p>Перетащите видео или кликните</p>
-                                <small>Максимальный размер: 50MB</small>
-                                <input type="file" id="videoFile" accept="video/*">
+                                <small>Поддерживаются: YouTube ссылки или файлы (макс. 100MB)</small>
+                                <input type="file" id="videoFile" accept="video/*" style="display: none;">
+                                <div style="margin-top: 1rem;">
+                                    <input type="text" id="youtubeUrl" placeholder="Или вставьте ссылку YouTube" 
+                                           style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--card-border); background: rgba(255,255,255,0.1); color: var(--text-color);">
+                                </div>
                             </div>
                             <div class="video-preview" id="videoPreview"></div>
                         </div>
@@ -302,7 +334,7 @@
                 <i class="fas fa-times"></i>
             </button>
             <div class="modal-content" id="videoModalContent">
-                <video id="modalVideo" controls autoplay style="width: 100%; border-radius: 10px;"></video>
+                <div id="videoPlayerContainer" style="width: 100%;"></div>
                 <div id="videoInfo" style="margin-top: 1rem; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 8px;"></div>
             </div>
         </div>
@@ -312,13 +344,6 @@
     <audio id="backgroundMusic" loop>
         <source src="https://assets.mixkit.co/music/preview/mixkit-tech-house-vibes-130.mp3" type="audio/mp3">
     </audio>
-
-    <!-- 📱 Мобильное меню -->
-    <div class="mobile-nav">
-        <button class="mobile-btn" id="mobileMenuBtn">
-            <i class="fas fa-bars"></i>
-        </button>
-    </div>
 
     <!-- Скрипты -->
     <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>

@@ -21,12 +21,44 @@ let app = {
     },
     currentModalCategory: null,
     currentVideoCategory: null,
-    videoDB: null // Для IndexedDB
+    videoDB: null
 };
+
+// 📱 ОПТИМИЗАЦИЯ ДЛЯ МОБИЛЬНЫХ
+function initMobileOptimizations() {
+    // Улучшаем касания
+    document.documentElement.style.setProperty('--min-touch', '44px');
+    
+    // Отключаем масштабирование при двойном тапе
+    document.addEventListener('touchstart', function(event) {
+        if (event.touches.length > 1) {
+            event.preventDefault();
+        }
+    }, { passive: false });
+    
+    // Предотвращаем зум на инпутах
+    document.addEventListener('touchmove', function(event) {
+        if (event.scale !== 1) {
+            event.preventDefault();
+        }
+    }, { passive: false });
+    
+    // Улучшаем видео для мобильных
+    const videoElements = document.querySelectorAll('video');
+    videoElements.forEach(video => {
+        video.setAttribute('playsinline', '');
+        video.setAttribute('webkit-playsinline', '');
+        video.setAttribute('x5-playsinline', '');
+        video.setAttribute('x5-video-player-type', 'h5');
+    });
+}
 
 // 🚀 ИНИЦИАЛИЗАЦИЯ
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 Запуск SLAY 68...');
+    
+    // Добавь эту строку
+    initMobileOptimizations();
     
     initData();
     
@@ -84,12 +116,12 @@ function initData() {
     app.categories = {
         'slay-king': {
             id: 'slay-king',
-            name: 'SLAY KING 68',
+            name: 'SLAY KING 68 2025',
             icon: 'crown',
             color: '#ffd700',
-            videoKey: null, // Ключ видео в IndexedDB
+            videoKey: null,
             thumbnail: null,
-            description: 'Король космических мемов',
+            description: 'Король космических мемов 2025',
             candidates: [
                 { id: 1, name: 'MEME_LORD', votes: 42, description: 'Повелитель мемов' },
                 { id: 2, name: 'КОСМОС', votes: 38, description: 'Покоритель вселенной' },
@@ -99,12 +131,12 @@ function initData() {
         },
         'slay-queen': {
             id: 'slay-queen',
-            name: 'SLAY QUEEN 68',
+            name: 'SLAY QUEEN 68 2025',
             icon: 'crown',
             color: '#ff00ff',
             videoKey: null,
             thumbnail: null,
-            description: 'Королева космических мемов',
+            description: 'Королева космических мемов 2025',
             candidates: [
                 { id: 4, name: 'КОРОЛЕВА МЕМОВ', votes: 35, description: 'Владычица мемов' },
                 { id: 5, name: 'ЛУНА', votes: 28, description: 'Ночная правительница' },
@@ -114,7 +146,7 @@ function initData() {
         },
         'meme-person': {
             id: 'meme-person',
-            name: 'ЧЕЛОВЕК МЕМ-ГОДА',
+            name: 'ЧЕЛОВЕК МЕМ-ГОДА 2025',
             icon: 'laugh-beam',
             color: '#00ff88',
             videoKey: null,
@@ -128,7 +160,7 @@ function initData() {
         },
         'event-year': {
             id: 'event-year',
-            name: 'МЕРОПРИЯТИЕ ГОДА',
+            name: 'МЕРОПРИЯТИЕ ГОДА 2025',
             icon: 'calendar-star',
             color: '#36d1dc',
             videoKey: null,
@@ -142,7 +174,7 @@ function initData() {
         },
         'ship-year': {
             id: 'ship-year',
-            name: 'ПАРА(ШИП) ГОДА',
+            name: 'ПАРА(ШИП) ГОДА 2025',
             icon: 'heart',
             color: '#ff6584',
             videoKey: null,
@@ -156,7 +188,7 @@ function initData() {
         },
         'dota-player': {
             id: 'dota-player',
-            name: 'ДОТА ИГРОК ГОДА',
+            name: 'ДОТА ИГРОК ГОДА 2025',
             icon: 'gamepad',
             color: '#6c63ff',
             videoKey: null,
@@ -177,7 +209,7 @@ function renderAll() {
     renderRoyalCategories();
     renderRegularCategories();
     updateAdminView();
-    loadAllThumbnails(); // Загружаем миниатюры
+    loadAllThumbnails();
 }
 
 // 📤 ЗАГРУЗКА МИНИАТЮР
@@ -189,7 +221,6 @@ async function loadAllThumbnails() {
     for (const category of categories) {
         if (category.videoKey) {
             try {
-                // Загружаем миниатюру
                 const thumbnail = await getThumbnailFromDB(category.id);
                 if (thumbnail) {
                     category.thumbnail = thumbnail;
@@ -212,10 +243,8 @@ async function saveVideoToDB(categoryId, videoFile, thumbnail) {
         
         const transaction = app.videoDB.transaction(['videos', 'thumbnails'], 'readwrite');
         
-        // Генерируем уникальный ключ
         const videoKey = `video_${categoryId}_${Date.now()}`;
         
-        // Сохраняем видео
         const videoStore = transaction.objectStore('videos');
         const videoData = {
             id: videoKey,
@@ -229,7 +258,6 @@ async function saveVideoToDB(categoryId, videoFile, thumbnail) {
         
         const videoRequest = videoStore.put(videoData);
         
-        // Сохраняем миниатюру
         const thumbStore = transaction.objectStore('thumbnails');
         const thumbData = {
             categoryId: categoryId,
@@ -245,10 +273,6 @@ async function saveVideoToDB(categoryId, videoFile, thumbnail) {
         };
         
         videoRequest.onerror = () => reject(videoRequest.error);
-        
-        thumbRequest.onsuccess = () => {
-            console.log(`✅ Миниатюра сохранена для: ${categoryId}`);
-        };
         
         thumbRequest.onerror = () => {
             console.error('Ошибка сохранения миниатюры:', thumbRequest.error);
@@ -270,7 +294,6 @@ async function getVideoFromDB(videoKey) {
         
         request.onsuccess = () => {
             if (request.result) {
-                // Создаем URL для видео
                 const videoBlob = request.result.videoBlob;
                 const videoUrl = URL.createObjectURL(videoBlob);
                 resolve(videoUrl);
@@ -316,11 +339,9 @@ async function deleteVideoFromDB(categoryId, videoKey) {
         
         const transaction = app.videoDB.transaction(['videos', 'thumbnails'], 'readwrite');
         
-        // Удаляем видео
         const videoStore = transaction.objectStore('videos');
         const videoRequest = videoStore.delete(videoKey);
         
-        // Удаляем миниатюру
         const thumbStore = transaction.objectStore('thumbnails');
         const thumbRequest = thumbStore.delete(categoryId);
         
@@ -333,7 +354,7 @@ async function deleteVideoFromDB(categoryId, videoKey) {
     });
 }
 
-// 🎬 ЗАГРУЗКА ВИДЕО (ОСНОВНАЯ ФУНКЦИЯ)
+// 🎬 ЗАГРУЗКА ВИДЕО
 window.uploadVideo = async function(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -351,18 +372,13 @@ window.uploadVideo = async function(event) {
     const categoryId = document.getElementById('categorySelect').value;
     
     try {
-        // Создаем миниатюру
         const thumbnail = await createThumbnail(file);
-        
-        // Сохраняем в IndexedDB
         const videoKey = await saveVideoToDB(categoryId, file, thumbnail);
         
-        // Обновляем состояние
         const category = app.categories[categoryId];
         category.videoKey = videoKey;
         category.thumbnail = thumbnail;
         
-        // Обновляем отображение
         updateAdminVideoPreview(categoryId);
         renderVideoForCategory(categoryId);
         saveToStorage();
@@ -383,7 +399,7 @@ function createThumbnail(videoFile) {
         video.preload = 'metadata';
         
         video.onloadedmetadata = () => {
-            video.currentTime = 1; // Берем кадр на 1 секунде
+            video.currentTime = 1;
             
             video.onseeked = () => {
                 const canvas = document.createElement('canvas');
@@ -397,7 +413,6 @@ function createThumbnail(videoFile) {
             };
             
             video.onerror = () => {
-                // Если не удалось создать миниатюру, используем заглушку
                 const placeholder = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='180'%3E%3Crect width='320' height='180' fill='%23222'/%3E%3Ctext x='160' y='90' text-anchor='middle' fill='white' font-family='Arial' font-size='20'%3EВидео%3C/text%3E%3C/svg%3E`;
                 resolve(placeholder);
             };
@@ -416,7 +431,6 @@ function createThumbnail(videoFile) {
 function renderVideoForCategory(categoryId) {
     const category = app.categories[categoryId];
     
-    // Для королевских категорий
     const royalVideoContainer = document.getElementById(`video-${categoryId}`);
     if (royalVideoContainer) {
         if (category.thumbnail) {
@@ -443,7 +457,6 @@ function renderVideoForCategory(categoryId) {
         }
     }
     
-    // Для обычных категорий
     const regularVideoContainer = document.getElementById(`video-small-${categoryId}`);
     if (regularVideoContainer) {
         if (category.thumbnail) {
@@ -470,7 +483,7 @@ function renderVideoForCategory(categoryId) {
     }
 }
 
-// 🎬 ВОСПРОИЗВЕДЕНИЕ ВИДЕО
+// 🎬 ВОСПРОИЗВЕДЕНИЕ ВИДЕО (ИСПРАВЛЕННАЯ ФУНКЦИЯ)
 window.playVideo = async function(categoryId) {
     const category = app.categories[categoryId];
     
@@ -480,35 +493,152 @@ window.playVideo = async function(categoryId) {
     }
     
     try {
-        // Получаем видео из IndexedDB
         const videoUrl = await getVideoFromDB(category.videoKey);
         
         app.currentVideoCategory = categoryId;
         
         const modal = document.getElementById('videoModal');
-        const video = document.getElementById('modalVideo');
-        const videoInfo = document.getElementById('videoInfo');
+        const modalContent = document.getElementById('videoModalContent');
         
-        modal.style.display = 'flex';
-        video.src = videoUrl;
-        
-        // Добавляем информацию о категории
-        videoInfo.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 1rem;">
-                <div style="width: 50px; height: 50px; background: ${category.color}; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                    <i class="fas fa-${category.icon}" style="color: white; font-size: 1.5rem;"></i>
+        // НОВОЕ СОДЕРЖИМОЕ МОДАЛКИ (ОПТИМИЗИРОВАНО ДЛЯ МОБИЛЬНЫХ)
+        modalContent.innerHTML = `
+            <div style="position: relative; max-height: 80vh; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+                <div class="sound-warning" style="
+                    background: rgba(255, 100, 100, 0.95);
+                    color: white;
+                    padding: 12px;
+                    margin-bottom: 15px;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    font-size: 14px;
+                    border-radius: 10px;
+                    position: sticky;
+                    top: 0;
+                    z-index: 10;
+                ">
+                    <i class="fas fa-volume-mute" style="font-size: 20px; flex-shrink: 0;"></i>
+                    <div style="flex: 1;">
+                        <strong style="display: block; margin-bottom: 3px;">ЗВУК ОТКЛЮЧЕН</strong>
+                        <small style="opacity: 0.9; font-size: 12px;">Нажмите кнопку ниже</small>
+                    </div>
                 </div>
-                <div>
-                    <h3 style="color: ${category.color}; margin: 0;">${category.name}</h3>
-                    <p style="color: rgba(255,255,255,0.7); margin: 0.25rem 0 0;">${category.description}</p>
+                
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <button id="enableSoundBtn" style="
+                        background: linear-gradient(45deg, #00ff88, #00ffff);
+                        color: black;
+                        border: none;
+                        padding: 15px 20px;
+                        border-radius: 25px;
+                        font-weight: bold;
+                        font-size: 16px;
+                        cursor: pointer;
+                        width: 100%;
+                        max-width: 300px;
+                        min-height: 50px;
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 10px;
+                        box-shadow: 0 4px 12px rgba(0, 255, 136, 0.4);
+                    ">
+                        <i class="fas fa-volume-up"></i>
+                        ВКЛЮЧИТЬ ЗВУК
+                    </button>
+                </div>
+                
+                <video id="modalVideo" style="
+                    width: 100%; 
+                    border-radius: 10px;
+                    background: #000;
+                    display: none;
+                    max-height: 50vh;
+                    object-fit: contain;
+                " controls playsinline webkit-playsinline></video>
+                
+                <div id="videoInfo" style="
+                    margin-top: 15px;
+                    padding: 15px;
+                    background: rgba(0,0,0,0.3);
+                    border-radius: 10px;
+                    border-left: 4px solid ${category.color};
+                ">
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
+                        <div style="
+                            width: 40px; 
+                            height: 40px; 
+                            background: ${category.color}; 
+                            border-radius: 10px; 
+                            display: flex; 
+                            align-items: center; 
+                            justify-content: center;
+                            flex-shrink: 0;
+                        ">
+                            <i class="fas fa-${category.icon}" style="color: white; font-size: 1.2rem;"></i>
+                        </div>
+                        <div style="flex: 1;">
+                            <h3 style="color: ${category.color}; margin: 0; font-size: 1.1rem;">${category.name}</h3>
+                            <p style="color: rgba(255,255,255,0.7); margin: 0.25rem 0 0; font-size: 0.9rem;">${category.description}</p>
+                        </div>
+                    </div>
+                    
+                    <div style="
+                        margin-top: 10px; 
+                        padding: 10px; 
+                        background: rgba(0,0,0,0.2); 
+                        border-radius: 8px;
+                        border: 1px solid rgba(0,255,255,0.2);
+                    ">
+                        <div style="display: flex; align-items: flex-start; gap: 8px; color: #00ffff; font-size: 13px;">
+                            <i class="fas fa-mobile-alt" style="margin-top: 2px;"></i>
+                            <div>
+                                <strong>На телефоне:</strong>
+                                <div style="opacity: 0.9; margin-top: 3px;">
+                                    1. Нажмите кнопку "Включить звук"<br>
+                                    2. Поверните телефон для полноэкранного режима<br>
+                                    3. Регулируйте громкость кнопками на корпусе
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
         
-        video.play().catch(e => {
-            console.log('Автовоспроизведение заблокировано:', e);
-            showNotification('Нажмите на видео для воспроизведения', 'info');
-        });
+        modal.style.display = 'flex';
+        
+        // Получаем элементы после создания
+        const video = document.getElementById('modalVideo');
+        const enableSoundBtn = document.getElementById('enableSoundBtn');
+        
+        video.src = videoUrl;
+        video.muted = false;
+        video.controls = true;
+        
+        // Кнопка включения звука
+        enableSoundBtn.onclick = function() {
+            // Показываем видео
+            video.style.display = 'block';
+            enableSoundBtn.style.display = 'none';
+            document.querySelector('.sound-warning').style.display = 'none';
+            
+            // Включаем звук
+            video.muted = false;
+            video.volume = 0.7;
+            
+            // Запускаем видео
+            const playPromise = video.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    showNotification('✅ Звук включен!', 'success');
+                }).catch(error => {
+                    console.log('Ошибка воспроизведения:', error);
+                    showNotification('Нажмите на видео для ручного запуска', 'warning');
+                });
+            }
+        };
         
         // Обработчик конца видео
         video.addEventListener('ended', () => {
@@ -516,21 +646,38 @@ window.playVideo = async function(categoryId) {
         });
         
         // Очищаем URL при закрытии
-        video.addEventListener('loadeddata', () => {
-            const closeBtn = document.getElementById('closeVideo');
-            const originalClick = closeBtn.onclick;
-            closeBtn.onclick = function() {
+        const closeBtn = document.getElementById('closeVideo');
+        const originalClick = closeBtn.onclick;
+        closeBtn.onclick = function() {
+            if (videoUrl.startsWith('blob:')) {
                 URL.revokeObjectURL(videoUrl);
-                closeVideoModal();
-                closeBtn.onclick = originalClick;
-            };
-        });
+            }
+            video.pause();
+            video.src = '';
+            modal.style.display = 'none';
+            app.currentVideoCategory = null;
+            closeBtn.onclick = originalClick;
+        };
         
     } catch (error) {
         console.error('Ошибка загрузки видео:', error);
         showNotification('❌ Ошибка загрузки видео', 'error');
     }
 };
+
+function closeVideoModal() {
+    const modal = document.getElementById('videoModal');
+    const video = document.getElementById('modalVideo');
+    
+    if (video) {
+        video.pause();
+        video.src = '';
+        video.style.display = 'none';
+    }
+    
+    modal.style.display = 'none';
+    app.currentVideoCategory = null;
+}
 
 // 🗑️ УДАЛЕНИЕ ВИДЕО
 window.deleteVideo = async function(categoryId) {
@@ -546,7 +693,6 @@ window.deleteVideo = async function(categoryId) {
         }
     }
     
-    // Очищаем состояние
     category.videoKey = null;
     category.thumbnail = null;
     
@@ -606,7 +752,6 @@ function updateAdminVideoPreview(categoryId) {
 // 📦 СОХРАНЕНИЕ И ЗАГРУЗКА ДАННЫХ
 function saveToStorage() {
     try {
-        // Сохраняем только ссылки, не сами видео
         const data = {
             categories: {},
             user: app.user
@@ -616,10 +761,8 @@ function saveToStorage() {
             const category = app.categories[categoryId];
             data.categories[categoryId] = {
                 ...category,
-                // Сохраняем только ключ видео и миниатюру
                 videoKey: category.videoKey,
                 thumbnail: category.thumbnail,
-                // Удаляем временные данные
                 video: undefined
             };
         });
@@ -636,7 +779,6 @@ function loadFromStorage() {
         const data = JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY));
         
         if (data) {
-            // Восстанавливаем категории
             Object.keys(data.categories || {}).forEach(categoryId => {
                 if (app.categories[categoryId]) {
                     app.categories[categoryId].candidates = data.categories[categoryId].candidates || [];
@@ -646,7 +788,6 @@ function loadFromStorage() {
                 }
             });
             
-            // Восстанавливаем голоса пользователя
             app.user.votedCategories = data.user?.votedCategories || {};
             console.log('📂 Данные загружены');
         }
@@ -655,15 +796,19 @@ function loadFromStorage() {
     }
 }
 
-// 🎮 СОБЫТИЯ (основные)
+// 🎮 СОБЫТИЯ
 function setupEvents() {
     // Админ панель
     document.getElementById('adminBtn').addEventListener('click', () => {
         document.getElementById('adminOverlay').style.display = 'flex';
+        document.getElementById('adminPass').value = '';
     });
     
     document.getElementById('closeAdmin').addEventListener('click', () => {
         document.getElementById('adminOverlay').style.display = 'none';
+        document.getElementById('loginSection').style.display = 'block';
+        document.getElementById('controlSection').style.display = 'none';
+        document.getElementById('adminPass').value = '';
     });
     
     // Логин админа
@@ -676,6 +821,12 @@ function setupEvents() {
             showNotification('✅ Админ доступ разрешен', 'success');
         } else {
             showNotification('❌ Неверный пароль', 'error');
+        }
+    });
+    
+    document.getElementById('adminPass').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            document.getElementById('loginBtn').click();
         }
     });
     
@@ -752,6 +903,15 @@ function setupEvents() {
         }
     });
     
+    document.getElementById('adminOverlay').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) {
+            document.getElementById('adminOverlay').style.display = 'none';
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('controlSection').style.display = 'none';
+            document.getElementById('adminPass').value = '';
+        }
+    });
+    
     // Музыка и тема
     document.getElementById('musicBtn').addEventListener('click', toggleMusic);
     document.getElementById('themeBtn').addEventListener('click', toggleTheme);
@@ -763,19 +923,6 @@ function setupEvents() {
             resetAllVotes();
         }
     });
-}
-
-function closeVideoModal() {
-    const modal = document.getElementById('videoModal');
-    const video = document.getElementById('modalVideo');
-    
-    if (video) {
-        video.pause();
-        video.src = '';
-    }
-    
-    modal.style.display = 'none';
-    app.currentVideoCategory = null;
 }
 
 // 🎵 МУЗЫКА И ТЕМА
@@ -884,17 +1031,7 @@ function resetAllVotes() {
     showNotification('✅ Все голосы сброшены', 'success');
 }
 
-// 🎉 ОСТАЛЬНЫЕ ФУНКЦИИ (из предыдущего кода)
-// 📊 РЕНДЕРИНГ СТАТИСТИКИ, 🎨 РЕНДЕРИНГ КОРОЛЕВСКИХ КАТЕГОРИЙ, 🏆 РЕНДЕРИНГ ОБЫЧНЫХ КАТЕГОРИЙ,
-// 🗳️ ГОЛОСОВАНИЕ, 👁️ ПОКАЗАТЬ ВСЕХ КАНДИДАТОВ, 🛠️ АДМИН ПАНЕЛЬ, 📊 ЭФФЕКТЫ
-// ... (остальной код из предыдущей версии остается без изменений) ...
-
-// 🔧 УТИЛИТЫ
-function generateId() {
-    return 'xxxx-xxxx-xxxx-xxxx'.replace(/x/g, () => 
-        Math.floor(Math.random() * 16).toString(16));
-}
-
+// 🎉 ЭФФЕКТЫ
 function showNotification(message, type = 'info', duration = 3000) {
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
@@ -916,12 +1053,17 @@ function showNotification(message, type = 'info', duration = 3000) {
 }
 
 function playSound(type) {
-    // Простая реализация звука
     if (type === 'success') {
         const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3');
         audio.volume = 0.3;
         audio.play().catch(e => console.log('Звук заблокирован'));
     }
+}
+
+// 🔧 УТИЛИТЫ
+function generateId() {
+    return 'xxxx-xxxx-xxxx-xxxx'.replace(/x/g, () => 
+        Math.floor(Math.random() * 16).toString(16));
 }
 
 function initParticles() {
@@ -961,7 +1103,7 @@ function initParticles() {
     }
 }
 
-// 🎨 РЕНДЕРИНГ КОРОЛЕВСКИХ КАТЕГОРИЙ (без изменений)
+// 🎨 РЕНДЕРИНГ КОРОЛЕВСКИХ КАТЕГОРИЙ
 function renderRoyalCategories() {
     renderRoyalCategory('slay-king', 'kingContent');
     renderRoyalCategory('slay-queen', 'queenContent');
@@ -1115,7 +1257,7 @@ window.showAllCandidates = function(categoryId) {
     modal.style.display = 'flex';
 };
 
-// 🏆 РЕНДЕРИНГ ОБЫЧНЫХ КАТЕГОРИЙ (без изменений)
+// 🏆 РЕНДЕРИНГ ОБЫЧНЫХ КАТЕГОРИЙ
 function renderRegularCategories() {
     const container = document.getElementById('categoriesContainer');
     if (!container) return;

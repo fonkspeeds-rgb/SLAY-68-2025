@@ -3,10 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SLAY 68 | Космическое Голосование</title>
-    
-    <!-- Убираем все CORS ограничения -->
-    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval';">
+    <title>SLAY 68 | Космическое Голосование 2025</title>
     
     <!-- Стили -->
     <link rel="stylesheet" href="style.css">
@@ -15,28 +12,47 @@
     
     <!-- Supabase -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    
+    <!-- Важные мета-теги для GitHub Pages -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="SLAY 68 2025 - Космические награды за лучшие мемы, игры и события">
 </head>
 <body>
+    <!-- Частицы -->
+    <div id="particles-js"></div>
+    
+    <!-- Уведомления -->
+    <div id="notifications"></div>
+    
     <nav class="nav">
         <div class="nav-container">
             <div class="nav-brand">
                 <span class="brand-main">SLAY</span>
                 <span class="brand-number">68</span>
-                <span class="brand-sub">VOTING</span>
+                <span class="brand-sub">2025</span>
             </div>
-            <button class="btn-admin" onclick="showAdminPanel()">
-                <i class="fas fa-user-secret"></i> АДМИН
-            </button>
+            <div class="nav-controls">
+                <button id="themeBtn" class="btn-control">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <button id="musicBtn" class="btn-control">
+                    <i class="fas fa-music"></i>
+                </button>
+                <button id="adminBtn" class="btn-admin">
+                    <i class="fas fa-user-secret"></i> АДМИН
+                </button>
+            </div>
         </div>
     </nav>
 
     <main class="container">
+        <!-- Герой секция -->
         <section class="hero">
             <h1 class="hero-title">
                 <span class="hero-gradient">КОСМИЧЕСКИЕ</span>
                 <span class="hero-outline">НАГРАДЫ 2025</span>
             </h1>
-            <p class="hero-subtitle">Выберите лучших в мире мемов и развлечений</p>
+            <p class="hero-subtitle">Голосуйте за лучших в мире мемов, игроков и события года!</p>
             
             <!-- Статистика -->
             <div class="stats">
@@ -68,6 +84,7 @@
         <section class="section">
             <div class="section-header">
                 <h2><i class="fas fa-crown"></i> КОРОЛЕВСКИЕ НОМИНАЦИИ</h2>
+                <p class="section-subtitle">Главные титулы года</p>
             </div>
             <div class="royal-grid">
                 <!-- SLAY KING -->
@@ -80,10 +97,12 @@
                         </div>
                     </div>
                     <div class="royal-body" id="kingContent">
-                        <p>Загрузка кандидатов...</p>
+                        <div class="candidates-list" id="kingCandidates">
+                            <p>Загрузка кандидатов...</p>
+                        </div>
                     </div>
                     <div class="royal-footer">
-                        <button class="btn-add" onclick="addCandidate('slay-king')">
+                        <button class="btn-add" onclick="openAddCandidateModal('slay-king')">
                             <i class="fas fa-plus"></i> Добавить кандидата
                         </button>
                     </div>
@@ -99,10 +118,12 @@
                         </div>
                     </div>
                     <div class="royal-body" id="queenContent">
-                        <p>Загрузка кандидатов...</p>
+                        <div class="candidates-list" id="queenCandidates">
+                            <p>Загрузка кандидатов...</p>
+                        </div>
                     </div>
                     <div class="royal-footer">
-                        <button class="btn-add" onclick="addCandidate('slay-queen')">
+                        <button class="btn-add" onclick="openAddCandidateModal('slay-queen')">
                             <i class="fas fa-plus"></i> Добавить кандидата
                         </button>
                     </div>
@@ -110,44 +131,182 @@
             </div>
         </section>
 
-        <!-- 🏆 Все категории -->
+        <!-- 🎯 ОСНОВНЫЕ КАТЕГОРИИ -->
         <section class="section">
             <div class="section-header">
-                <h2><i class="fas fa-trophy"></i> ВСЕ КАТЕГОРИИ</h2>
-                <p class="section-subtitle">8 основных номинаций</p>
+                <h2><i class="fas fa-trophy"></i> ОСНОВНЫЕ НОМИНАЦИИ</h2>
+                <p class="section-subtitle">12 главных категорий 2025 года</p>
             </div>
-            <div class="categories-grid" id="categoriesContainer">
-                <!-- Категории загрузятся через JS -->
+            
+            <!-- ВАШИ НОВЫЕ КАТЕГОРИИ -->
+            <div class="categories-grid">
+                <!-- МЕМ ГОДА -->
+                <div class="category-card" data-category="meme-year">
+                    <div class="category-header">
+                        <div class="category-icon" style="background: #ff6b6b;">
+                            <i class="fas fa-laugh-beam"></i>
+                        </div>
+                        <h3>МЕМ ГОДА</h3>
+                    </div>
+                    <p>Самый смешной и вирусный мем 2025</p>
+                    <div class="category-stats">
+                        <span><i class="fas fa-users"></i> <span id="meme-year-voters">0</span> голосов</span>
+                        <span><i class="fas fa-user-plus"></i> <span id="meme-year-candidates">0</span> кандидатов</span>
+                    </div>
+                    <div class="category-body" id="meme-year-candidates-list">
+                        <!-- Кандидаты загрузятся через JS -->
+                    </div>
+                    <button class="btn-add" onclick="openCategoryModal('meme-year')">
+                        <i class="fas fa-vote-yea"></i> Голосовать
+                    </button>
+                </div>
+
+                <!-- ПАРА(ШИП) ГОДА -->
+                <div class="category-card" data-category="ship-year">
+                    <div class="category-header">
+                        <div class="category-icon" style="background: #ff6b9d;">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                        <h3>ПАРА(ШИП) ГОДА</h3>
+                    </div>
+                    <p>Лучшая пара или шипперская пара 2025</p>
+                    <div class="category-stats">
+                        <span><i class="fas fa-users"></i> <span id="ship-year-voters">0</span> голосов</span>
+                        <span><i class="fas fa-user-plus"></i> <span id="ship-year-candidates">0</span> кандидатов</span>
+                    </div>
+                    <div class="category-body" id="ship-year-candidates-list">
+                        <!-- Кандидаты загрузятся через JS -->
+                    </div>
+                    <button class="btn-add" onclick="openCategoryModal('ship-year')">
+                        <i class="fas fa-vote-yea"></i> Голосовать
+                    </button>
+                </div>
+
+                <!-- ДОТА ИГРОК ГОДА -->
+                <div class="category-card" data-category="dota-player-year">
+                    <div class="category-header">
+                        <div class="category-icon" style="background: #4d96ff;">
+                            <i class="fas fa-gamepad"></i>
+                        </div>
+                        <h3>ДОТА ИГРОК ГОДА</h3>
+                    </div>
+                    <p>Лучший игрок в Dota 2 за 2025 год</p>
+                    <div class="category-stats">
+                        <span><i class="fas fa-users"></i> <span id="dota-player-year-voters">0</span> голосов</span>
+                        <span><i class="fas fa-user-plus"></i> <span id="dota-player-year-candidates">0</span> кандидатов</span>
+                    </div>
+                    <div class="category-body" id="dota-player-year-candidates-list">
+                        <!-- Кандидаты загрузятся через JS -->
+                    </div>
+                    <button class="btn-add" onclick="openCategoryModal('dota-player-year')">
+                        <i class="fas fa-vote-yea"></i> Голосовать
+                    </button>
+                </div>
+
+                <!-- МЕРОПРИЯТИЕ ГОДА -->
+                <div class="category-card" data-category="event-year">
+                    <div class="category-header">
+                        <div class="category-icon" style="background: #6c5ce7;">
+                            <i class="fas fa-calendar-star"></i>
+                        </div>
+                        <h3>МЕРОПРИЯТИЕ ГОДА</h3>
+                    </div>
+                    <p>Лучшее мероприятие или ивент 2025</p>
+                    <div class="category-stats">
+                        <span><i class="fas fa-users"></i> <span id="event-year-voters">0</span> голосов</span>
+                        <span><i class="fas fa-user-plus"></i> <span id="event-year-candidates">0</span> кандидатов</span>
+                    </div>
+                    <div class="category-body" id="event-year-candidates-list">
+                        <!-- Кандидаты загрузятся через JS -->
+                    </div>
+                    <button class="btn-add" onclick="openCategoryModal('event-year')">
+                        <i class="fas fa-vote-yea"></i> Голосовать
+                    </button>
+                </div>
+
+                <!-- Остальные существующие категории -->
+                <div class="category-card" data-category="delivery-year">
+                    <div class="category-header">
+                        <div class="category-icon" style="background: #00cec9;">
+                            <i class="fas fa-truck-fast"></i>
+                        </div>
+                        <h3>ЗАВОЗ ГОДА</h3>
+                    </div>
+                    <p>Лучший завоз или поставка года</p>
+                    <div class="category-stats">
+                        <span><i class="fas fa-users"></i> <span id="delivery-year-voters">0</span> голосов</span>
+                        <span><i class="fas fa-user-plus"></i> <span id="delivery-year-candidates">0</span> кандидатов</span>
+                    </div>
+                    <div class="category-body" id="delivery-year-candidates-list">
+                        <!-- Кандидаты загрузятся через JS -->
+                    </div>
+                    <button class="btn-add" onclick="openCategoryModal('delivery-year')">
+                        <i class="fas fa-vote-yea"></i> Голосовать
+                    </button>
+                </div>
+
+                <!-- Дополнительные категории... -->
             </div>
         </section>
     </main>
 
-    <!-- Админ панель -->
-    <div class="admin-overlay" id="adminOverlay" style="display: none;">
-        <div class="admin-panel">
-            <div class="admin-header">
-                <h3><i class="fas fa-user-astronaut"></i> АДМИН ПАНЕЛЬ</h3>
-                <button class="close-btn" onclick="closeAdminPanel()">
+    <!-- Модальные окна -->
+    <div id="categoryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalCategoryTitle"></h3>
+                <button onclick="closeCategoryModal()" class="close-btn">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="admin-body" id="adminBody">
-                <div style="text-align: center; padding: 2rem;">
-                    <input type="password" id="adminPass" placeholder="Введите пароль" 
-                           style="padding: 0.75rem; width: 80%; margin-bottom: 1rem;">
-                    <button onclick="loginAdmin()" style="padding: 0.75rem 2rem; background: #8a2be2; color: white; border: none; border-radius: 5px;">
-                        Войти
-                    </button>
-                </div>
+            <div class="modal-body" id="modalCategoryBody">
+                <!-- Контент загрузится через JS -->
             </div>
         </div>
     </div>
 
+    <!-- Админ панель -->
+    <div id="adminPanel" class="admin-panel-overlay" style="display: none;">
+        <div class="admin-panel">
+            <!-- Контент админки из script.js -->
+        </div>
+    </div>
+
+    <!-- Фоновый звук -->
+    <audio id="backgroundMusic" loop style="display: none;">
+        <source src="https://assets.mixkit.co/music/preview/mixkit-tech-house-vibes-130.mp3" type="audio/mpeg">
+    </audio>
+
     <!-- Скрипты -->
-    <script src="script.js"></script>
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
     <script>
-        // Запуск приложения
-        document.addEventListener('DOMContentLoaded', initApp);
+        // Инициализация Supabase (если используется)
+        window.supabaseClient = null;
+        
+        // Если хотите использовать Supabase, раскомментируйте и добавьте ваш URL и ключ:
+        /*
+        const supabaseUrl = 'ВАШ_SUPABASE_URL';
+        const supabaseKey = 'ВАШ_SUPABASE_KEY';
+        window.supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+        */
+    </script>
+    <script src="supabase-service.js"></script>
+    <script src="script.js"></script>
+    
+    <!-- Инициализация при загрузке -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Проверяем, есть ли уже инициализация
+            if (!window.appInitialized) {
+                console.log('🚀 Запуск SLAY 68 на GitHub Pages...');
+                window.appInitialized = true;
+                
+                // Инициализируем приложение
+                if (typeof initApp === 'function') {
+                    initApp();
+                }
+            }
+        });
     </script>
 </body>
 </html>

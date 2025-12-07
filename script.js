@@ -466,47 +466,66 @@ function renderRoyalCategory(categoryId, elementId) {
     container.innerHTML = html;
     renderVideoForCategory(categoryId);
 }
-
-// 🗳️ ГОЛОСОВАНИЕ С ЗАЩИТОЙ
+// 🗳️ ГОЛОСОВАНИЕ С ПРОВЕРКОЙ ЛИМИТОВ
 window.voteForCandidate = async function(categoryId, candidateId) {
     const now = Date.now();
     
-    // Проверяем блокировку
-    const blockReason = checkIfBlocked();
-    if (blockReason) {
-        showNotification(`⏳ ${blockReason}`, 'warning');
-        app.security.failedAttempts++;
-        return;
-    }
-    
-    // Проверяем кулдаун
+    // Проверяем базовые ограничения
     if (now - app.user.lastVote < app.settings.security.VOTE_COOLDOWN_MS) {
         showNotification('Подождите перед следующим голосом', 'warning');
         return;
     }
     
-    // Проверяем, голосовал ли уже
     if (app.user.votedCategories[categoryId]) {
         showNotification('Вы уже голосовали в этой категории', 'warning');
         return;
     }
     
-    // Увеличиваем счетчики
-    app.security.voteAttempts++;
-    app.security.lastVoteTime = now;
-    app.security.voteHistory.push({
-        time: now,
-        category: categoryId,
-        candidate: candidateId
-    });
-    
-    // Ограничиваем историю
-    if (app.security.voteHistory.length > 100) {
-        app.security.voteHistory.shift();
+    // Проверяем блокировку
+    if (app.security.blockedUntil > now) {
+        const minutesLeft = Math.ceil((app.security.blockedUntil - now) / 60000);
+        showNotification(`Вы заблокированы на ${minutesLeft} минут`, 'error');
+        return;
     }
     
     try {
-        const candidate = app.categories[categoryId]?.candidates?.find(c => c.id === candidateId);
+        // Если используем Supabase - проверяем лимиты через функцию
+        if (app.supabase && app.supabase.checkVoteWithLimits) {
+            const limitCheck = await app.supabase.checkVoteWithLimits(
+                app.user.id, 
+                app.user.fingerprint, 
+                categoryId
+            );
+            
+            if (!limitCheck.canVote) {
+                showNotification(`⏳ ${limitCheck.reason}`, 'warning');
+                
+                // Если лимит превышен, блокируем на час
+                if (limitCheck.reason.includes('лимит') && limitCheck.votesLastHour >= 50) {
+                    app.security.blockedUntil = now + 60 * 60 * 1000;
+                }
+                return;
+            }
+            
+            // Проверяем не голосовал ли уже
+            const alreadyVoted = await app.supabase.checkAlreadyVoted(
+                app.user.id,
+                app.user.fingerprint,
+                categoryId
+            );
+            
+            if (alreadyVoted) {
+                showNotification('Вы уже голосовали в этой категории', 'warning');
+                app.user.votedCategories[categoryId] = true;
+                renderCategory(categoryId);
+                return;
+            }
+        }
+        
+        // Голосуем
+        const category = app.categories[categoryId];
+        const candidate = category.candidates.find(c => c.id === candidateId);
+        
         if (!candidate) {
             throw new Error('Кандидат не найден');
         }
@@ -524,9 +543,8 @@ window.voteForCandidate = async function(categoryId, candidateId) {
             const result = await app.supabase.voteForCandidateWithSecurity(voteData);
             
             if (result.success) {
-                // Обновляем локальные данные
                 candidate.votes = result.newVotes;
-                app.user.voteStats.votesThisHour = result.votesThisHour;
+                app.user.voteStats.votesThisHour = result.votesThisHour || 0;
             }
             
         } else {
@@ -537,8 +555,8 @@ window.voteForCandidate = async function(categoryId, candidateId) {
         // Обновляем состояние
         app.user.votedCategories[categoryId] = true;
         app.user.lastVote = now;
-        app.user.voteStats.votesThisHour++;
-        app.security.failedAttempts = 0; // Сбрасываем при успешном голосовании
+        app.security.voteAttempts++;
+        app.security.failedAttempts = 0; // Сбрасываем при успехе
         
         // Обновляем отображение
         renderCategory(categoryId);
@@ -547,29 +565,59 @@ window.voteForCandidate = async function(categoryId, candidateId) {
         showNotification(`✅ Вы проголосовали за ${candidate.name}!`, 'success');
         playSound('success');
         
+        // Записываем в историю
+        app.security.voteHistory.push({
+            time: now,
+            category: categoryId,
+            candidate: candidateId,
+            candidateName: candidate.name
+        });
+        
+        // Ограничиваем историю
+        if (app.security.voteHistory.length > 100) {
+            app.security.voteHistory.shift();
+        }
+        
     } catch (error) {
         console.error('❌ Ошибка голосования:', error);
         
         app.security.failedAttempts++;
         
-        if (app.security.failedAttempts >= app.settings.security.PERM_BLOCK_AFTER_FAILED_ATTEMPTS) {
-            app.security.blockedUntil = Date.now() + 24 * 60 * 60 * 1000; // 24 часа
-            showNotification('🚫 Вы заблокированы на 24 часа за подозрительную активность', 'error');
-        } else if (error.message.includes('лимит') || error.message.includes('limit')) {
-            showNotification('⏳ Достигнут лимит голосований. Попробуйте позже.', 'warning');
-        } else if (error.message.includes('fingerprint') || error.message.includes('уже голосовали')) {
+        // Обработка ошибок
+        if (error.message.includes('быстрое голосование') || 
+            error.message.includes('fast voting') ||
+            error.message.includes('1 секунду')) {
+            showNotification('⏳ Слишком быстро! Подождите 1 секунду.', 'warning');
+            
+        } else if (error.message.includes('лимит') || 
+                  error.message.includes('limit') ||
+                  error.message.includes('50/час')) {
+            showNotification('⏳ Достигнут лимит голосов (50/час). Попробуйте позже.', 'warning');
+            app.security.blockedUntil = Date.now() + 60 * 60 * 1000; // 1 час
+            
+        } else if (error.message.includes('уже голосовали') || 
+                  error.message.includes('already voted') ||
+                  error.message.includes('повторный голос')) {
+            showNotification('🚫 Вы уже голосовали в этой категории', 'warning');
+            app.user.votedCategories[categoryId] = true;
+            renderCategory(categoryId);
+            
+        } else if (error.message.includes('fingerprint')) {
             showNotification('🚫 Обнаружена попытка накрутки', 'error');
-            app.user.votedCategories[categoryId] = true; // Помечаем как проголосовавшего
-        } else if (error.message.includes('быстрое') || error.message.includes('fast')) {
-            showNotification('⏳ Слишком быстрое голосование. Подождите 1 секунду.', 'warning');
+            app.security.blockedUntil = Date.now() + 30 * 60 * 1000; // 30 минут
+            
         } else {
             showNotification(`❌ ${error.message || 'Ошибка голосования'}`, 'error');
         }
         
-        // Обновляем интерфейс в случае ошибки
-        renderCategory(categoryId);
+        // Если много неудачных попыток - блокируем
+        if (app.security.failedAttempts >= 10) {
+            app.security.blockedUntil = Date.now() + 24 * 60 * 60 * 1000; // 24 часа
+            showNotification('🚫 Вы заблокированы на 24 часа за подозрительную активность', 'error');
+        }
     }
 };
+
 
 // 🔄 СБРОС ВСЕХ ГОЛОСОВ - ИСПРАВЛЕННЫЙ
 async function resetAllVotes() {

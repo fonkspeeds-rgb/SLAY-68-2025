@@ -1,7 +1,7 @@
 // 🔧 КОНФИГУРАЦИЯ С ЗАЩИТОЙ
 const CONFIG = {
     ADMIN_PASSWORD: "Marshlopopo228!",
-    USE_SUPABASE: true,
+    USE_SUPABASE: false, // По умолчанию локальный режим для GitHub Pages
     
     // Защита от накрутки
     SECURITY: {
@@ -55,21 +55,20 @@ let app = {
     }
 };
 
-// 🚀 ИНИЦИАЛИЗАЦИЯ
-document.addEventListener('DOMContentLoaded', async () => {
+// 🚀 ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ
+function initApp() {
     console.log('🚀 SLAY 68 с защитой запускается...');
     
     // Загружаем настройки безопасности
     loadSecuritySettings();
     
     // Генерируем ID пользователя с защитой
-    app.user.id = await generateSecureUserId();
+    generateSecureUserId();
     console.log('👤 Безопасный ID пользователя:', app.user.id.substring(0, 20) + '...');
     
     // Генерируем fingerprint
     if (app.settings.security.ENABLE_FINGERPRINT) {
-        app.user.fingerprint = await generateFingerprint();
-        console.log('🔒 Fingerprint:', app.user.fingerprint.substring(0, 16) + '...');
+        generateFingerprint();
     } else {
         app.user.fingerprint = 'no_fp';
         console.log('🔓 Fingerprint защита отключена');
@@ -78,38 +77,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Загружаем локальные настройки
     loadUserSettings();
     
-    // Инициализируем Supabase если включено
-    if (CONFIG.USE_SUPABASE && window.SupabaseService) {
-        try {
-            console.log('🔄 Инициализация Supabase с защитой...');
-            app.supabase = new SupabaseService();
-            
-            // Обновляем конфигурацию безопасности в Supabase
-            if (app.supabase.updateSecurityConfig) {
-                await app.supabase.updateSecurityConfig(app.settings.security);
-            }
-            
-            // Проверяем подключение
-            const connected = await app.supabase.checkConnection();
-            if (connected) {
-                console.log('✅ Supabase подключен, загружаем данные...');
-                await loadDataFromSupabase();
-                showNotification('✅ Подключено к защищенной базе данных', 'success');
-                
-                // Проверяем лимиты голосования
-                await updateVoteStats();
-            } else {
-                throw new Error('Нет подключения к Supabase');
-            }
-        } catch (error) {
-            console.error('❌ Ошибка Supabase:', error);
-            showNotification('⚠️ Используется локальный режим', 'warning');
-            initLocalData();
-        }
-    } else {
-        console.log('🔄 Используем локальные данные...');
-        initLocalData();
-    }
+    // Инициализируем локальные данные
+    initLocalData();
     
     // Настраиваем события и рендерим
     setupEvents();
@@ -122,29 +91,168 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     console.log('✅ Приложение готово с защитой!');
-});
+}
+
+// 📋 ИНИЦИАЛИЗАЦИЯ ВСЕХ КАТЕГОРИЙ
+function initAllCategories() {
+    console.log('📋 Инициализация всех категорий...');
+    
+    // Основные категории
+    const categories = {
+        // 👑 Королевские
+        'slay-king': {
+            id: 'slay-king',
+            name: 'SLAY KING 68',
+            icon: 'crown',
+            color: '#ffd700',
+            description: 'Король космических мемов',
+            type: 'royal',
+            candidates: [
+                { id: 'king1', name: 'MEME_LORD', votes: 42, description: 'Повелитель мемов' },
+                { id: 'king2', name: 'КОСМОС', votes: 38, description: 'Покоритель вселенной' },
+                { id: 'king3', name: 'SLAY STAR', votes: 25, description: 'Звезда года' }
+            ]
+        },
+        'slay-queen': {
+            id: 'slay-queen',
+            name: 'SLAY QUEEN 68',
+            icon: 'crown',
+            color: '#ff00ff',
+            description: 'Королева космических мемов',
+            type: 'royal',
+            candidates: [
+                { id: 'queen1', name: 'КОРОЛЕВА МЕМОВ', votes: 35, description: 'Владычица мемов' },
+                { id: 'queen2', name: 'ЛУНА', votes: 28, description: 'Ночная правительница' },
+                { id: 'queen3', name: 'GALAXY QUEEN', votes: 22, description: 'Королева галактики' }
+            ]
+        },
+        
+        // 🏆 ВАШИ НОВЫЕ КАТЕГОРИИ
+        'meme-year': {
+            id: 'meme-year',
+            name: 'МЕМ ГОДА',
+            icon: 'laugh-beam',
+            color: '#ff6b6b',
+            description: 'Самый смешной и вирусный мем 2025',
+            type: 'regular',
+            candidates: [
+                { id: 'm1', name: 'Космический Ждун', votes: 25, description: 'Ждун в скафандре' },
+                { id: 'm2', name: 'Шрек-мем 2025', votes: 18, description: 'Новая версия Шрека' },
+                { id: 'm3', name: 'Доге в космосе', votes: 15, description: 'Such space, wow' }
+            ]
+        },
+        'ship-year': {
+            id: 'ship-year',
+            name: 'ПАРА(ШИП) ГОДА',
+            icon: 'heart',
+            color: '#ff6b9d',
+            description: 'Лучшая пара или шипперская пара 2025',
+            type: 'regular',
+            candidates: [
+                { id: 's1', name: 'Астронавт & Луна', votes: 22, description: 'Космическая любовь' },
+                { id: 's2', name: 'Дроид & Робот', votes: 15, description: 'Техно-романтика' },
+                { id: 's3', name: 'SLAY & ROYAL', votes: 12, description: 'Королевский шип' }
+            ]
+        },
+        'dota-player-year': {
+            id: 'dota-player-year',
+            name: 'ДОТА ИГРОК ГОДА',
+            icon: 'gamepad',
+            color: '#4d96ff',
+            description: 'Лучший игрок в Dota 2 за 2025 год',
+            type: 'regular',
+            candidates: [
+                { id: 'd1', name: 'YATORO', votes: 32, description: 'Король керри' },
+                { id: 'd2', name: 'MIRACLE', votes: 28, description: 'Легенда' },
+                { id: 'd3', name: 'COLLAPSE', votes: 24, description: 'Непробиваемый' }
+            ]
+        },
+        'event-year': {
+            id: 'event-year',
+            name: 'МЕРОПРИЯТИЕ ГОДА',
+            icon: 'calendar-star',
+            color: '#6c5ce7',
+            description: 'Лучшее мероприятие или ивент 2025',
+            type: 'regular',
+            candidates: [
+                { id: 'e1', name: 'The International 2025', votes: 40, description: 'Майнор по Доте' },
+                { id: 'e2', name: 'Космофест', votes: 25, description: 'Фестиваль мемов' },
+                { id: 'e3', name: 'SLAY Awards', votes: 18, description: 'Церемония наград' }
+            ]
+        },
+        
+        // 📦 Другие существующие категории
+        'delivery-year': {
+            id: 'delivery-year',
+            name: 'ЗАВОЗ ГОДА',
+            icon: 'truck-fast',
+            color: '#00cec9',
+            description: 'Лучший завоз или поставка года',
+            type: 'regular',
+            candidates: [
+                { id: 'del1', name: 'Космическая пицца', votes: 20, description: 'Доставка на орбиту' },
+                { id: 'del2', name: 'Мем-доставка', votes: 15, description: 'Свежие мемы каждый день' }
+            ]
+        },
+        'style-year': {
+            id: 'style-year',
+            name: 'СТИЛЬ ГОДА',
+            icon: 'tshirt',
+            color: '#e91e63',
+            description: 'Лучший стиль или образ года',
+            type: 'regular',
+            candidates: [
+                { id: 'st1', name: 'Космо-стиль', votes: 18, description: 'Космическая мода' },
+                { id: 'st2', name: 'Ретро-футуризм', votes: 12, description: 'Стиль будущего' }
+            ]
+        }
+    };
+    
+    // Инициализируем категории в app
+    Object.values(categories).forEach(cat => {
+        app.categories[cat.id] = {
+            ...cat,
+            videoUrl: null,
+            thumbnail: null,
+            isYouTube: false
+        };
+    });
+    
+    console.log(`✅ Инициализировано ${Object.keys(app.categories).length} категорий`);
+}
+
+// 🏠 ЛОКАЛЬНЫЕ ДАННЫЕ (запасной вариант)
+function initLocalData() {
+    console.log('🏠 Загрузка локальных данных...');
+    
+    // Инициализируем все категории
+    initAllCategories();
+    
+    // Загружаем сохраненные голоса
+    loadLocalVotes();
+}
 
 // 🔒 ГЕНЕРАЦИЯ БЕЗОПАСНОГО ID
-async function generateSecureUserId() {
+function generateSecureUserId() {
     let userId = localStorage.getItem('slay68_secure_user_id');
     
     if (!userId) {
         const timestamp = Date.now();
         const random = Math.random().toString(36).substr(2, 16);
-        const fp = app.user.fingerprint ? app.user.fingerprint.substring(0, 12) : 'no_fp';
         
-        userId = `secure_${timestamp}_${random}_${fp}`;
+        userId = `user_${timestamp}_${random}`;
         localStorage.setItem('slay68_secure_user_id', userId);
         localStorage.setItem('slay68_user_created', timestamp);
         
         console.log('🆕 Создан новый защищенный ID пользователя');
     }
     
+    app.user.id = userId;
     return userId;
 }
 
 // 🔒 ГЕНЕРАЦИЯ FINGERPRINT
-async function generateFingerprint() {
+function generateFingerprint() {
     try {
         const components = [];
         
@@ -152,32 +260,34 @@ async function generateFingerprint() {
         components.push(navigator.userAgent);
         components.push(`${screen.width}x${screen.height}x${screen.colorDepth}`);
         components.push(navigator.language);
-        components.push(Intl.DateTimeFormat().resolvedOptions().timeZone);
         components.push(navigator.platform);
-        components.push(navigator.hardwareConcurrency || 'unknown');
-        components.push(navigator.deviceMemory || 'unknown');
-        components.push(navigator.maxTouchPoints || '0');
         
         // Добавляем случайные компоненты для уникальности
         components.push(Math.random().toString(36).substr(2, 10));
         components.push(Date.now().toString(36));
         
-        // Создаем хэш
+        // Создаем простой хэш (без crypto.subtle для совместимости)
         const data = components.join('|');
-        const encoder = new TextEncoder();
-        const dataBuffer = encoder.encode(data);
+        let hash = 0;
         
-        // Используем Web Crypto API
-        const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        for (let i = 0; i < data.length; i++) {
+            const char = data.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
         
-        return hashHex;
+        const fingerprint = 'fp_' + Math.abs(hash).toString(36) + '_' + Date.now().toString(36);
+        app.user.fingerprint = fingerprint;
+        
+        console.log('🔒 Fingerprint:', fingerprint.substring(0, 20) + '...');
+        return fingerprint;
         
     } catch (error) {
         console.error('Ошибка генерации fingerprint:', error);
         // Fallback
-        return 'fp_fallback_' + Math.random().toString(36).substr(2, 32) + '_' + Date.now();
+        const fallback = 'fp_fallback_' + Math.random().toString(36).substr(2, 32) + '_' + Date.now();
+        app.user.fingerprint = fallback;
+        return fallback;
     }
 }
 
@@ -207,70 +317,388 @@ function saveSecuritySettings() {
     }
 }
 
-// 📥 ЗАГРУЗКА ДАННЫХ ИЗ SUPABASE
-async function loadDataFromSupabase() {
+// 💾 ЗАГРУЗКА ЛОКАЛЬНЫХ ГОЛОСОВ
+function loadLocalVotes() {
     try {
-        app.categories = await app.supabase.getCategories();
-        
-        const categoryIds = Object.keys(app.categories);
-        for (const categoryId of categoryIds) {
-            const candidates = await app.supabase.getCandidates(categoryId);
-            app.categories[categoryId].candidates = candidates;
+        const saved = localStorage.getItem('slay68_votes');
+        if (saved) {
+            const votes = JSON.parse(saved);
+            app.user.votedCategories = votes.votedCategories || {};
+            app.user.voteStats = votes.voteStats || { votesToday: 0, votesThisHour: 0, lastVoteTime: null };
+            
+            // Обновляем кандидатов
+            Object.keys(votes.candidates || {}).forEach(catId => {
+                if (app.categories[catId] && votes.candidates[catId]) {
+                    app.categories[catId].candidates = votes.candidates[catId];
+                }
+            });
+            
+            console.log('✅ Локальные голоса загружены');
         }
-        
-        await loadUserVotes();
-        await updateVoteStats();
-        
-        console.log('✅ Данные с защитой загружены из Supabase');
     } catch (error) {
-        console.error('❌ Ошибка загрузки данных:', error);
-        throw error;
+        console.warn('Не удалось загрузить локальные голоса:', error);
     }
 }
 
-// 👤 ЗАГРУЗКА ГОЛОСОВ ПОЛЬЗОВАТЕЛЯ
-async function loadUserVotes() {
-    if (!app.supabase) return;
-    
+// 💾 СОХРАНЕНИЕ ЛОКАЛЬНЫХ ГОЛОСОВ
+function saveLocalVotes() {
     try {
-        const categoryIds = Object.keys(app.categories);
-        for (const categoryId of categoryIds) {
-            const hasVoted = await app.supabase.hasUserVoted(app.user.id, categoryId);
-            if (hasVoted) {
-                app.user.votedCategories[categoryId] = true;
-            }
-        }
-        console.log(`✅ Загружены голоса пользователя для ${Object.keys(app.user.votedCategories).length} категорий`);
+        const data = {
+            votedCategories: app.user.votedCategories,
+            voteStats: app.user.voteStats,
+            candidates: {}
+        };
+        
+        // Сохраняем кандидатов по категориям
+        Object.keys(app.categories).forEach(catId => {
+            data.candidates[catId] = app.categories[catId].candidates;
+        });
+        
+        localStorage.setItem('slay68_votes', JSON.stringify(data));
+        console.log('💾 Голоса сохранены');
+        return true;
     } catch (error) {
-        console.error('❌ Ошибка загрузки голосов:', error);
+        console.error('Ошибка сохранения голосов:', error);
+        return false;
     }
 }
 
-// 📊 ОБНОВЛЕНИЕ СТАТИСТИКИ ГОЛОСОВАНИЯ
-async function updateVoteStats() {
-    if (!app.supabase) return;
-    
+// 🎨 РЕНДЕРИНГ
+function renderAll() {
+    renderStats();
+    renderRoyalCategories();
+    renderRegularCategories();
+    updateAdminView();
+}
+
+// 📊 РЕНДЕРИНГ СТАТИСТИКИ
+function renderStats() {
     try {
-        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+        let totalVotes = 0;
+        let totalCandidates = 0;
+        let uniqueVoters = 0;
         
-        const { data: recentVotes, error } = await app.supabase.client
-            .from('votes')
-            .select('created_at')
-            .eq('user_id', app.user.id)
-            .gte('created_at', oneHourAgo);
+        Object.values(app.categories).forEach(category => {
+            category.candidates.forEach(candidate => {
+                totalVotes += candidate.votes || 0;
+            });
+            totalCandidates += category.candidates.length;
+        });
         
-        if (error) {
-            console.error('Ошибка получения статистики голосов:', error);
-            return;
+        // Уникальные голосующие - считаем по votedCategories
+        uniqueVoters = Object.keys(app.user.votedCategories).length;
+        
+        document.getElementById('liveVotes').textContent = totalVotes;
+        document.getElementById('liveVoters').textContent = uniqueVoters;
+        document.getElementById('liveCandidates').textContent = totalCandidates;
+        
+        // Обновляем админ статистику
+        if (document.getElementById('adminTotalVotes')) {
+            document.getElementById('adminTotalVotes').textContent = totalVotes;
+            document.getElementById('adminUniqueVoters').textContent = uniqueVoters;
         }
         
-        app.user.voteStats.votesThisHour = recentVotes?.length || 0;
-        app.user.voteStats.lastVoteTime = recentVotes?.[0]?.created_at || null;
+    } catch (error) {
+        console.error('❌ Ошибка рендеринга статистики:', error);
+    }
+}
+
+// 👑 РЕНДЕРИНГ КОРОЛЕВСКИХ КАТЕГОРИЙ
+function renderRoyalCategories() {
+    renderRoyalCategory('slay-king', 'kingContent');
+    renderRoyalCategory('slay-queen', 'queenContent');
+}
+
+function renderRoyalCategory(categoryId, elementId) {
+    const category = app.categories[categoryId];
+    const container = document.getElementById(elementId);
+    if (!container || !category) return;
+    
+    let html = '';
+    const candidates = category.candidates || [];
+    
+    if (candidates.length === 0) {
+        html = `
+            <div class="empty-state">
+                <i class="fas fa-user-plus"></i>
+                <p>Кандидатов пока нет</p>
+                <button onclick="openAddCandidateModal('${categoryId}')" class="btn-add-small">
+                    <i class="fas fa-plus"></i> Добавить
+                </button>
+            </div>
+        `;
+    } else {
+        const totalVotes = candidates.reduce((sum, c) => sum + (c.votes || 0), 0);
         
-        console.log(`📊 Голосов за час: ${app.user.voteStats.votesThisHour}/${app.settings.security.MAX_VOTES_PER_USER_PER_HOUR}`);
+        candidates.forEach((candidate, index) => {
+            const hasVoted = app.user.votedCategories[categoryId];
+            const percentage = totalVotes > 0 ? Math.round(((candidate.votes || 0) / totalVotes) * 100) : 0;
+            const canVote = !hasVoted && !checkIfBlocked();
+            
+            html += `
+                <div class="candidate-royal">
+                    <div class="candidate-avatar" style="background: ${category.color}22; color: ${category.color}">
+                        ${index + 1}
+                    </div>
+                    <div class="candidate-info">
+                        <div class="candidate-name">${candidate.name}</div>
+                        ${candidate.description ? `<div class="candidate-desc">${candidate.description}</div>` : ''}
+                        <div class="candidate-progress">
+                            <div class="candidate-progress-bar" style="width: ${percentage}%; background: ${category.color}"></div>
+                        </div>
+                    </div>
+                    <div class="candidate-votes">${candidate.votes || 0}</div>
+                    <button class="vote-btn-royal ${hasVoted ? 'voted' : ''} ${!canVote ? 'disabled' : ''}" 
+                            onclick="${canVote ? `voteForCandidate('${categoryId}', '${candidate.id}')` : 'showBlockReason()'}"
+                            ${!canVote ? 'disabled' : ''}
+                            style="background: ${category.color}">
+                        ${hasVoted ? '<i class="fas fa-check"></i> ГОЛОС ПОДТВЕРЖДЕН' : 
+                          canVote ? '<i class="fas fa-vote-yea"></i> ГОЛОСОВАТЬ' : 
+                          '<i class="fas fa-ban"></i> НЕДОСТУПНО'}
+                    </button>
+                </div>
+            `;
+        });
+    }
+    
+    container.innerHTML = html;
+}
+
+// 🏆 РЕНДЕРИНГ ОБЫЧНЫХ КАТЕГОРИЙ
+function renderRegularCategories() {
+    const container = document.getElementById('categoriesContainer');
+    if (!container) return;
+    
+    let html = '';
+    
+    // Только обычные категории (не королевские)
+    const regularCategories = Object.values(app.categories).filter(cat => 
+        cat.type !== 'royal'
+    );
+    
+    regularCategories.forEach(category => {
+        const totalVotes = category.candidates.reduce((sum, c) => sum + (c.votes || 0), 0);
+        const candidateCount = category.candidates.length;
+        
+        html += `
+            <div class="category-card" data-category="${category.id}">
+                <div class="category-header">
+                    <div class="category-icon" style="background: ${category.color}">
+                        <i class="fas fa-${category.icon}"></i>
+                    </div>
+                    <h3>${category.name}</h3>
+                </div>
+                <p>${category.description}</p>
+                <div class="category-stats">
+                    <span><i class="fas fa-users"></i> ${totalVotes} голосов</span>
+                    <span><i class="fas fa-user-plus"></i> ${candidateCount} кандидатов</span>
+                </div>
+                <div class="category-body" id="${category.id}-candidates-preview">
+                    ${renderCategoryPreview(category.id)}
+                </div>
+                <button class="btn-add" onclick="openCategoryModal('${category.id}')">
+                    <i class="fas fa-vote-yea"></i> ${app.user.votedCategories[category.id] ? 'ПРОСМОТР' : 'ГОЛОСОВАТЬ'}
+                </button>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+// 👀 РЕНДЕРИНГ ПРЕВЬЮ КАТЕГОРИИ
+function renderCategoryPreview(categoryId) {
+    const category = app.categories[categoryId];
+    if (!category || category.candidates.length === 0) {
+        return '<div class="empty-preview">Кандидатов пока нет</div>';
+    }
+    
+    const topCandidates = category.candidates
+        .sort((a, b) => (b.votes || 0) - (a.votes || 0))
+        .slice(0, 3);
+    
+    let html = '<div class="candidates-preview">';
+    
+    topCandidates.forEach((candidate, index) => {
+        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+        html += `
+            <div class="preview-candidate">
+                <span class="preview-medal">${medal}</span>
+                <span class="preview-name">${candidate.name}</span>
+                <span class="preview-votes">${candidate.votes || 0}</span>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    return html;
+}
+
+// 🪟 ФУНКЦИИ МОДАЛЬНЫХ ОКОН
+function openCategoryModal(categoryId) {
+    const category = app.categories[categoryId];
+    if (!category) return;
+    
+    const modal = document.getElementById('categoryModal');
+    const title = document.getElementById('modalCategoryTitle');
+    const body = document.getElementById('modalCategoryBody');
+    
+    if (!modal || !title || !body) {
+        console.error('Модальное окно не найдено');
+        return;
+    }
+    
+    title.textContent = category.name;
+    
+    // Рендерим кандидатов
+    let html = `<p class="modal-description">${category.description}</p>`;
+    
+    if (category.candidates.length === 0) {
+        html += `
+            <div class="empty-state">
+                <i class="fas fa-user-plus"></i>
+                <p>Кандидатов пока нет. Будьте первым!</p>
+                <button onclick="openAddCandidateModal('${categoryId}')" class="btn-add">
+                    <i class="fas fa-plus"></i> Добавить кандидата
+                </button>
+            </div>
+        `;
+    } else {
+        html += '<div class="candidates-list">';
+        
+        // Сортируем по голосам
+        const sortedCandidates = [...category.candidates].sort((a, b) => (b.votes || 0) - (a.votes || 0));
+        
+        sortedCandidates.forEach((candidate, index) => {
+            const hasVoted = app.user.votedCategories[categoryId];
+            const canVote = !hasVoted && !checkIfBlocked();
+            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+            
+            html += `
+                <div class="candidate-card">
+                    <div class="candidate-rank">${medal}</div>
+                    <div class="candidate-info">
+                        <div class="candidate-name">${candidate.name}</div>
+                        ${candidate.description ? `<div class="candidate-desc">${candidate.description}</div>` : ''}
+                    </div>
+                    <div class="candidate-votes">${candidate.votes || 0}</div>
+                    <button class="vote-btn-modal ${hasVoted ? 'voted' : ''} ${!canVote ? 'disabled' : ''}"
+                            onclick="${canVote ? `voteForCandidate('${categoryId}', '${candidate.id}')` : 'showBlockReason()'}"
+                            ${!canVote ? 'disabled' : ''}>
+                        ${hasVoted ? '<i class="fas fa-check"></i> ✓' : 
+                          canVote ? '<i class="fas fa-vote-yea"></i> Голос' : 
+                          '<i class="fas fa-ban"></i> ✗'}
+                    </button>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        
+        // Кнопка добавления кандидата
+        if (!app.user.votedCategories[categoryId]) {
+            html += `
+                <button onclick="openAddCandidateModal('${categoryId}')" class="btn-add" style="margin-top: 1.5rem;">
+                    <i class="fas fa-plus"></i> Добавить своего кандидата
+                </button>
+            `;
+        }
+    }
+    
+    body.innerHTML = html;
+    modal.style.display = 'flex';
+}
+
+function closeCategoryModal() {
+    const modal = document.getElementById('categoryModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function openAddCandidateModal(categoryId) {
+    const category = app.categories[categoryId];
+    if (!category) return;
+    
+    const modal = document.getElementById('categoryModal');
+    const title = document.getElementById('modalCategoryTitle');
+    const body = document.getElementById('modalCategoryBody');
+    
+    title.textContent = `Добавить кандидата в ${category.name}`;
+    
+    body.innerHTML = `
+        <div class="add-candidate-form">
+            <div class="form-group">
+                <label for="candidateName">Имя кандидата *</label>
+                <input type="text" id="candidateName" placeholder="Введите имя" maxlength="100">
+            </div>
+            <div class="form-group">
+                <label for="candidateDesc">Описание (необязательно)</label>
+                <textarea id="candidateDesc" placeholder="Краткое описание" rows="3"></textarea>
+            </div>
+            <div class="form-actions">
+                <button onclick="closeCategoryModal()" class="btn-secondary">
+                    <i class="fas fa-times"></i> Отмена
+                </button>
+                <button onclick="submitCandidate('${categoryId}')" class="btn-primary">
+                    <i class="fas fa-plus"></i> Добавить
+                </button>
+            </div>
+        </div>
+    `;
+    
+    modal.style.display = 'flex';
+}
+
+async function submitCandidate(categoryId) {
+    const nameInput = document.getElementById('candidateName');
+    const descInput = document.getElementById('candidateDesc');
+    
+    if (!nameInput || !descInput) return;
+    
+    const name = nameInput.value.trim();
+    const description = descInput.value.trim();
+    
+    if (!name) {
+        showNotification('❌ Введите имя кандидата', 'error');
+        return;
+    }
+    
+    if (name.length > 100) {
+        showNotification('❌ Имя слишком длинное (макс. 100 символов)', 'error');
+        return;
+    }
+    
+    try {
+        const candidateId = 'candidate_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        
+        // Добавляем кандидата
+        app.categories[categoryId].candidates.push({
+            id: candidateId,
+            name: name,
+            description: description,
+            votes: 0,
+            categoryId: categoryId
+        });
+        
+        // Сохраняем
+        saveLocalVotes();
+        
+        showNotification(`✅ Кандидат "${name}" добавлен!`, 'success');
+        closeCategoryModal();
+        
+        // Обновляем отображение
+        if (categoryId === 'slay-king' || categoryId === 'slay-queen') {
+            renderRoyalCategory(categoryId, categoryId === 'slay-king' ? 'kingContent' : 'queenContent');
+        } else {
+            renderRegularCategories();
+        }
+        
+        renderStats();
         
     } catch (error) {
-        console.error('Ошибка обновления статистики:', error);
+        console.error('Ошибка добавления кандидата:', error);
+        showNotification(`❌ ${error.message || 'Ошибка добавления'}`, 'error');
     }
 }
 
@@ -303,170 +731,12 @@ function checkIfBlocked() {
         return app.security.blockReason;
     }
     
-    // Проверяем лимиты голосований
-    if (app.user.voteStats.votesThisHour >= app.settings.security.MAX_VOTES_PER_USER_PER_HOUR) {
-        const nextHour = new Date(now + 60 * 60 * 1000);
-        app.security.blockedUntil = nextHour.getTime();
-        app.security.isBlocked = true;
-        app.security.blockReason = `Достигнут лимит голосов (${app.settings.security.MAX_VOTES_PER_USER_PER_HOUR}/час)`;
-        return app.security.blockReason;
-    }
-    
     app.security.isBlocked = false;
     app.security.blockReason = null;
     return null;
 }
 
-// 🏠 ЛОКАЛЬНЫЕ ДАННЫЕ (запасной вариант)
-function initLocalData() {
-    console.log('🏠 Загрузка локальных данных...');
-    
-    app.categories = {
-        'slay-king': {
-            id: 'slay-king',
-            name: 'SLAY KING 68',
-            icon: 'crown',
-            color: '#ffd700',
-            description: 'Король космических мемов',
-            videoUrl: null,
-            thumbnail: null,
-            isYouTube: false,
-            candidates: [
-                { id: '1', name: 'MEME_LORD', votes: 42, description: 'Повелитель мемов' },
-                { id: '2', name: 'КОСМОС', votes: 38, description: 'Покоритель вселенной' }
-            ]
-        },
-        'slay-queen': {
-            id: 'slay-queen',
-            name: 'SLAY QUEEN 68',
-            icon: 'crown',
-            color: '#ff00ff',
-            description: 'Королева космических мемов',
-            videoUrl: null,
-            thumbnail: null,
-            isYouTube: false,
-            candidates: [
-                { id: '3', name: 'КОРОЛЕВА МЕМОВ', votes: 35, description: 'Владычица мемов' },
-                { id: '4', name: 'ЛУНА', votes: 28, description: 'Ночная правительница' }
-            ]
-        }
-    };
-    
-    const otherCategories = [
-        ['meme-person', 'ЧЕЛОВЕК МЕМ-ГОДА', 'laugh-beam', '#00ff88'],
-        ['event-year', 'МЕРОПРИЯТИЕ ГОДА', 'calendar-star', '#36d1dc'],
-        ['ship-year', 'ПАРА(ШИП) ГОДА', 'heart', '#ff6584'],
-        ['dota-player', 'ДОТА ИГРОК ГОДА', 'gamepad', '#6c63ff'],
-        ['delivery-year', 'ЗАВОЗ ГОДА', 'truck-fast', '#ff9800'],
-        ['style-year', 'СТИЛЬ ГОДА', 'tshirt', '#e91e63']
-    ];
-    
-    otherCategories.forEach(([id, name, icon, color]) => {
-        app.categories[id] = {
-            id, name, icon, color,
-            description: name,
-            videoUrl: null,
-            thumbnail: null,
-            isYouTube: false,
-            candidates: []
-        };
-    });
-}
-
-// 🎨 РЕНДЕРИНГ
-function renderAll() {
-    renderStats();
-    renderRoyalCategories();
-    renderRegularCategories();
-    updateAdminView();
-}
-
-// 📊 РЕНДЕРИНГ СТАТИСТИКИ
-async function renderStats() {
-    try {
-        if (app.supabase) {
-            const stats = await app.supabase.getStatistics();
-            document.getElementById('liveVotes').textContent = stats.totalVotes;
-            document.getElementById('liveVoters').textContent = stats.uniqueUsers;
-            document.getElementById('liveCandidates').textContent = stats.candidatesCount;
-            
-            document.getElementById('adminTotalVotes').textContent = stats.totalVotes;
-            document.getElementById('adminUniqueVoters').textContent = stats.uniqueUsers;
-            document.getElementById('adminBlockedAttempts').textContent = stats.blockedAttempts || 0;
-        } else {
-            let totalVotes = 0;
-            let totalCandidates = 0;
-            
-            Object.values(app.categories).forEach(category => {
-                category.candidates.forEach(candidate => {
-                    totalVotes += candidate.votes || 0;
-                });
-                totalCandidates += category.candidates.length;
-            });
-            
-            document.getElementById('liveVotes').textContent = totalVotes;
-            document.getElementById('liveVoters').textContent = Math.floor(totalVotes / 2);
-            document.getElementById('liveCandidates').textContent = totalCandidates;
-        }
-    } catch (error) {
-        console.error('❌ Ошибка рендеринга статистики:', error);
-    }
-}
-
-// 👑 РЕНДЕРИНГ КОРОЛЕВСКИХ КАТЕГОРИЙ
-function renderRoyalCategories() {
-    renderRoyalCategory('slay-king', 'kingContent');
-    renderRoyalCategory('slay-queen', 'queenContent');
-    updateRoyalTotals();
-}
-
-function renderRoyalCategory(categoryId, elementId) {
-    const category = app.categories[categoryId];
-    const container = document.getElementById(elementId);
-    if (!container || !category) return;
-    
-    let html = '';
-    const candidates = category.candidates || [];
-    
-    if (candidates.length === 0) {
-        html = `<div class="empty-state"><i class="fas fa-user-plus"></i><p>Кандидатов пока нет</p></div>`;
-    } else {
-        const totalVotes = candidates.reduce((sum, c) => sum + (c.votes || 0), 0);
-        
-        candidates.forEach((candidate, index) => {
-            const hasVoted = app.user.votedCategories[categoryId];
-            const percentage = totalVotes > 0 ? Math.round(((candidate.votes || 0) / totalVotes) * 100) : 0;
-            
-            // Проверяем, можно ли голосовать
-            const canVote = !hasVoted && !checkIfBlocked();
-            
-            html += `
-                <div class="candidate-royal">
-                    <div class="candidate-avatar">${index + 1}</div>
-                    <div class="candidate-info">
-                        <div class="candidate-name">${candidate.name}</div>
-                        ${candidate.description ? `<div class="candidate-desc">${candidate.description}</div>` : ''}
-                        <div class="candidate-progress">
-                            <div class="candidate-progress-bar" style="width: ${percentage}%"></div>
-                        </div>
-                    </div>
-                    <div class="candidate-votes">${candidate.votes || 0}</div>
-                    <button class="vote-btn-royal ${hasVoted ? 'voted' : ''} ${!canVote ? 'disabled' : ''}" 
-                            onclick="${canVote ? `voteForCandidate('${categoryId}', '${candidate.id}')` : 'showBlockReason()'}"
-                            ${!canVote ? 'disabled' : ''}>
-                        ${hasVoted ? '<i class="fas fa-check"></i> ГОЛОС ПОДТВЕРЖДЕН' : 
-                          canVote ? '<i class="fas fa-vote-yea"></i> ГОЛОСОВАТЬ' : 
-                          '<i class="fas fa-ban"></i> НЕДОСТУПНО'}
-                    </button>
-                </div>
-            `;
-        });
-    }
-    
-    container.innerHTML = html;
-    renderVideoForCategory(categoryId);
-}
-// 🗳️ ГОЛОСОВАНИЕ С ПРОВЕРКОЙ ЛИМИТОВ
+// 🗳️ ГОЛОСОВАНИЕ (основная функция)
 window.voteForCandidate = async function(categoryId, candidateId) {
     const now = Date.now();
     
@@ -489,40 +759,6 @@ window.voteForCandidate = async function(categoryId, candidateId) {
     }
     
     try {
-        // Если используем Supabase - проверяем лимиты через функцию
-        if (app.supabase && app.supabase.checkVoteWithLimits) {
-            const limitCheck = await app.supabase.checkVoteWithLimits(
-                app.user.id, 
-                app.user.fingerprint, 
-                categoryId
-            );
-            
-            if (!limitCheck.canVote) {
-                showNotification(`⏳ ${limitCheck.reason}`, 'warning');
-                
-                // Если лимит превышен, блокируем на час
-                if (limitCheck.reason.includes('лимит') && limitCheck.votesLastHour >= 50) {
-                    app.security.blockedUntil = now + 60 * 60 * 1000;
-                }
-                return;
-            }
-            
-            // Проверяем не голосовал ли уже
-            const alreadyVoted = await app.supabase.checkAlreadyVoted(
-                app.user.id,
-                app.user.fingerprint,
-                categoryId
-            );
-            
-            if (alreadyVoted) {
-                showNotification('Вы уже голосовали в этой категории', 'warning');
-                app.user.votedCategories[categoryId] = true;
-                renderCategory(categoryId);
-                return;
-            }
-        }
-        
-        // Голосуем
         const category = app.categories[categoryId];
         const candidate = category.candidates.find(c => c.id === candidateId);
         
@@ -530,36 +766,33 @@ window.voteForCandidate = async function(categoryId, candidateId) {
             throw new Error('Кандидат не найден');
         }
         
-        if (app.supabase) {
-            // Голосуем через защищенный метод
-            const voteData = {
-                user_id: app.user.id,
-                candidate_id: candidateId,
-                category_id: categoryId,
-                fingerprint: app.user.fingerprint,
-                user_agent: navigator.userAgent
-            };
-            
-            const result = await app.supabase.voteForCandidateWithSecurity(voteData);
-            
-            if (result.success) {
-                candidate.votes = result.newVotes;
-                app.user.voteStats.votesThisHour = result.votesThisHour || 0;
-            }
-            
-        } else {
-            // Локальное голосование
-            candidate.votes = (candidate.votes || 0) + 1;
-        }
+        // Увеличиваем голос
+        candidate.votes = (candidate.votes || 0) + 1;
         
         // Обновляем состояние
         app.user.votedCategories[categoryId] = true;
         app.user.lastVote = now;
+        app.security.lastVoteTime = now;
         app.security.voteAttempts++;
         app.security.failedAttempts = 0; // Сбрасываем при успехе
         
+        // Обновляем статистику
+        app.user.voteStats.votesThisHour++;
+        app.user.voteStats.lastVoteTime = now;
+        
+        // Сохраняем голоса
+        saveLocalVotes();
+        
         // Обновляем отображение
-        renderCategory(categoryId);
+        closeCategoryModal();
+        
+        // Обновляем все отображение
+        if (categoryId === 'slay-king' || categoryId === 'slay-queen') {
+            renderRoyalCategory(categoryId, categoryId === 'slay-king' ? 'kingContent' : 'queenContent');
+        } else {
+            renderRegularCategories();
+        }
+        
         renderStats();
         
         showNotification(`✅ Вы проголосовали за ${candidate.name}!`, 'success');
@@ -583,32 +816,7 @@ window.voteForCandidate = async function(categoryId, candidateId) {
         
         app.security.failedAttempts++;
         
-        // Обработка ошибок
-        if (error.message.includes('быстрое голосование') || 
-            error.message.includes('fast voting') ||
-            error.message.includes('1 секунду')) {
-            showNotification('⏳ Слишком быстро! Подождите 1 секунду.', 'warning');
-            
-        } else if (error.message.includes('лимит') || 
-                  error.message.includes('limit') ||
-                  error.message.includes('50/час')) {
-            showNotification('⏳ Достигнут лимит голосов (50/час). Попробуйте позже.', 'warning');
-            app.security.blockedUntil = Date.now() + 60 * 60 * 1000; // 1 час
-            
-        } else if (error.message.includes('уже голосовали') || 
-                  error.message.includes('already voted') ||
-                  error.message.includes('повторный голос')) {
-            showNotification('🚫 Вы уже голосовали в этой категории', 'warning');
-            app.user.votedCategories[categoryId] = true;
-            renderCategory(categoryId);
-            
-        } else if (error.message.includes('fingerprint')) {
-            showNotification('🚫 Обнаружена попытка накрутки', 'error');
-            app.security.blockedUntil = Date.now() + 30 * 60 * 1000; // 30 минут
-            
-        } else {
-            showNotification(`❌ ${error.message || 'Ошибка голосования'}`, 'error');
-        }
+        showNotification(`❌ ${error.message || 'Ошибка голосования'}`, 'error');
         
         // Если много неудачных попыток - блокируем
         if (app.security.failedAttempts >= 10) {
@@ -618,8 +826,7 @@ window.voteForCandidate = async function(categoryId, candidateId) {
     }
 };
 
-
-// 🔄 СБРОС ВСЕХ ГОЛОСОВ - ИСПРАВЛЕННЫЙ
+// 🔄 СБРОС ВСЕХ ГОЛОСОВ
 async function resetAllVotes() {
     // Первое подтверждение
     if (!confirm('🚨 ВНИМАНИЕ: Вы собираетесь сбросить ВСЕ голоса.\n\nЭто действие:')) {
@@ -640,39 +847,26 @@ async function resetAllVotes() {
     }
     
     // Показываем предупреждение
-    showNotification('🔄 Начинаем сброс голосов... Это может занять несколько секунд.', 'info');
+    showNotification('🔄 Начинаем сброс голосов...', 'info');
     
     try {
-        let result;
-        
-        if (app.supabase) {
-            // Используем Supabase
-            result = await app.supabase.resetAllVotes();
-            
-            // Перезагружаем данные
-            await loadDataFromSupabase();
-            
-        } else {
-            // Локальный сброс
-            Object.values(app.categories).forEach(category => {
-                category.candidates.forEach(candidate => {
-                    candidate.votes = 0;
-                });
+        // Сбрасываем все голоса
+        Object.values(app.categories).forEach(category => {
+            category.candidates.forEach(candidate => {
+                candidate.votes = 0;
             });
-            app.user.votedCategories = {};
-            app.user.voteStats.votesThisHour = 0;
-            app.security.voteHistory = [];
-            
-            result = { 
-                success: true, 
-                message: 'Локальные голосы сброшены',
-                details: {
-                    candidatesReset: Object.values(app.categories).reduce((sum, cat) => sum + cat.candidates.length, 0),
-                    votesDeleted: 'все',
-                    timestamp: new Date().toISOString()
-                }
-            };
-        }
+        });
+        
+        // Сбрасываем состояние пользователя
+        app.user.votedCategories = {};
+        app.user.voteStats.votesThisHour = 0;
+        app.security.voteHistory = [];
+        app.security.failedAttempts = 0;
+        app.security.blockedUntil = 0;
+        app.security.isBlocked = false;
+        
+        // Сохраняем
+        saveLocalVotes();
         
         // Обновляем интерфейс
         renderAll();
@@ -681,166 +875,111 @@ async function resetAllVotes() {
         showNotification('✅ Все голосы успешно сброшены!', 'success');
         playSound('success');
         
-        // Детали в консоль
-        console.log('Сброс голосов выполнен:', result);
-        
-        // Дополнительное уведомление с деталями
-        setTimeout(() => {
-            if (result.details) {
-                showNotification(`📊 Сброшено: ${result.details.candidatesReset} кандидатов, ${result.details.votesDeleted} голосов`, 'info');
-            }
-        }, 1500);
-        
     } catch (error) {
         console.error('❌ Критическая ошибка сброса голосов:', error);
         showNotification(`❌ Ошибка: ${error.message}`, 'error');
-        
-        // Пробуем альтернативный метод
-        try {
-            if (app.supabase && app.supabase.client.rpc) {
-                showNotification('🔄 Пробуем альтернативный метод...', 'info');
-                
-                const { data, error: rpcError } = await app.supabase.client.rpc('reset_all_votes_safe');
-                
-                if (rpcError) throw rpcError;
-                
-                await loadDataFromSupabase();
-                renderAll();
-                
-                showNotification('⚠️ Голосы сброшены альтернативным методом', 'warning');
-            }
-        } catch (fallbackError) {
-            console.error('Альтернативный метод не сработал:', fallbackError);
-            showNotification('❌ Не удалось сбросить голоса. Обратитесь к администратору.', 'error');
-        }
     }
 }
 
 // 🛠️ НАСТРОЙКА СОБЫТИЙ
 function setupEvents() {
     // Админ панель
-    document.getElementById('adminBtn').addEventListener('click', () => {
-        document.getElementById('adminOverlay').style.display = 'flex';
-    });
-    
-    document.getElementById('closeAdmin').addEventListener('click', () => {
-        document.getElementById('adminOverlay').style.display = 'none';
-    });
+    const adminBtn = document.getElementById('adminBtn');
+    if (adminBtn) {
+        adminBtn.addEventListener('click', showAdminPanel);
+    }
     
     // Логин админа
-    document.getElementById('loginBtn').addEventListener('click', () => {
-        const password = document.getElementById('adminPass').value;
-        if (password === CONFIG.ADMIN_PASSWORD) {
-            document.getElementById('loginSection').style.display = 'none';
-            document.getElementById('controlSection').style.display = 'block';
-            updateAdminView();
-            showNotification('✅ Админ доступ разрешен', 'success');
-        } else {
-            showNotification('❌ Неверный пароль', 'error');
-            document.getElementById('adminPass').value = '';
-        }
-    });
+    const loginBtn = document.getElementById('loginBtn');
+    if (loginBtn) {
+        loginBtn.addEventListener('click', loginAdmin);
+    }
     
-    // Табы админки
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const tab = this.getAttribute('data-tab');
-            
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            
-            this.classList.add('active');
-            document.getElementById(tab + 'Tab').classList.add('active');
-            
-            if (tab === 'stats') {
-                updateAdminStats();
-            } else if (tab === 'security') {
-                updateSecurityTab();
-            }
-        });
-    });
-    
-    // Выбор категории в админке
-    document.getElementById('categorySelect').addEventListener('change', updateAdminView);
-    
-    // Добавление кандидата
-    document.getElementById('addCandidateBtn').addEventListener('click', addCandidateHandler);
-    
-    // Загрузка видео
-    document.getElementById('videoFile').addEventListener('change', uploadVideo);
-    document.getElementById('uploadArea').addEventListener('click', () => {
-        document.getElementById('videoFile').click();
-    });
+    // Закрытие админки
+    const closeAdmin = document.getElementById('closeAdmin');
+    if (closeAdmin) {
+        closeAdmin.addEventListener('click', closeAdminPanel);
+    }
     
     // Кнопки админки
-    document.getElementById('exportBtn').addEventListener('click', exportData);
-    document.getElementById('resetBtn').addEventListener('click', resetAllVotes);
-    document.getElementById('refreshStatsBtn')?.addEventListener('click', async () => {
-        await updateAdminStats();
-        showNotification('✅ Статистика обновлена', 'success');
-    });
-    
-    // Безопасность
-    document.getElementById('saveSecurityBtn')?.addEventListener('click', saveSecuritySettingsHandler);
-    document.getElementById('viewLogsBtn')?.addEventListener('click', showSecurityLogs);
-    document.getElementById('closeSecurity')?.addEventListener('click', () => {
-        document.getElementById('securityModal').style.display = 'none';
-    });
-    
-    // Модалки
-    document.getElementById('closeCandidates').addEventListener('click', () => {
-        document.getElementById('candidatesModal').style.display = 'none';
-    });
-    
-    document.getElementById('closeVideo').addEventListener('click', closeVideoModal);
-    
-    // Клик вне модалок
-    document.getElementById('candidatesModal').addEventListener('click', (e) => {
-        if (e.target === e.currentTarget) {
-            document.getElementById('candidatesModal').style.display = 'none';
-        }
-    });
-    
-    document.getElementById('videoModal').addEventListener('click', (e) => {
-        if (e.target === e.currentTarget) {
-            closeVideoModal();
-        }
-    });
-    
-    document.getElementById('securityModal')?.addEventListener('click', (e) => {
-        if (e.target === e.currentTarget) {
-            document.getElementById('securityModal').style.display = 'none';
-        }
-    });
+    const resetBtn = document.getElementById('resetBtn');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', resetAllVotes);
+    }
     
     // Музыка и тема
-    document.getElementById('musicBtn').addEventListener('click', toggleMusic);
-    document.getElementById('themeBtn').addEventListener('click', toggleTheme);
+    const musicBtn = document.getElementById('musicBtn');
+    if (musicBtn) {
+        musicBtn.addEventListener('click', toggleMusic);
+    }
+    
+    const themeBtn = document.getElementById('themeBtn');
+    if (themeBtn) {
+        themeBtn.addEventListener('click', toggleTheme);
+    }
+    
+    // Закрытие модалок кликом вне области
+    const categoryModal = document.getElementById('categoryModal');
+    if (categoryModal) {
+        categoryModal.addEventListener('click', (e) => {
+            if (e.target === categoryModal) {
+                closeCategoryModal();
+            }
+        });
+    }
+    
+    const adminPanel = document.getElementById('adminPanel');
+    if (adminPanel) {
+        adminPanel.addEventListener('click', (e) => {
+            if (e.target === adminPanel) {
+                closeAdminPanel();
+            }
+        });
+    }
 }
 
-// 🔧 ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (сокращены для экономии места)
+// 🔧 АДМИН ПАНЕЛЬ
+function showAdminPanel() {
+    const panel = document.getElementById('adminPanel');
+    if (panel) {
+        panel.style.display = 'flex';
+        updateAdminView();
+    }
+}
+
+function closeAdminPanel() {
+    const panel = document.getElementById('adminPanel');
+    if (panel) {
+        panel.style.display = 'none';
+    }
+}
+
+function loginAdmin() {
+    const passwordInput = document.getElementById('adminPass');
+    const loginSection = document.getElementById('loginSection');
+    const controlSection = document.getElementById('controlSection');
+    
+    if (!passwordInput || !loginSection || !controlSection) return;
+    
+    const password = passwordInput.value;
+    
+    if (password === CONFIG.ADMIN_PASSWORD) {
+        loginSection.style.display = 'none';
+        controlSection.style.display = 'block';
+        updateAdminView();
+        showNotification('✅ Админ доступ разрешен', 'success');
+    } else {
+        showNotification('❌ Неверный пароль', 'error');
+        passwordInput.value = '';
+    }
+}
 
 function updateAdminView() {
-    const categorySelect = document.getElementById('categorySelect');
-    if (!categorySelect) return;
+    // Обновляем статистику
+    renderStats();
     
-    const categoryId = categorySelect.value;
-    updateAdminCandidatesList(categoryId);
-    updateAdminVideoPreview(categoryId);
-    updateAdminStats();
-}
-
-async function updateAdminStats() {
-    try {
-        if (app.supabase) {
-            const stats = await app.supabase.getStatistics();
-            document.getElementById('adminTotalVotes').textContent = stats.totalVotes;
-            document.getElementById('adminUniqueVoters').textContent = stats.uniqueUsers;
-            document.getElementById('adminBlockedAttempts').textContent = stats.blockedAttempts || 0;
-        }
-    } catch (error) {
-        console.error('❌ Ошибка обновления статистики:', error);
-    }
+    // Обновляем настройки безопасности
+    updateSecurityTab();
 }
 
 function updateSecurityTab() {
@@ -856,96 +995,12 @@ function updateSecurityTab() {
     }
 }
 
-async function saveSecuritySettingsHandler() {
-    const enableFingerprint = document.getElementById('enableFingerprint');
-    const maxVotesPerHour = document.getElementById('maxVotesPerHour');
-    
-    if (!enableFingerprint || !maxVotesPerHour) return;
-    
-    app.settings.security.ENABLE_FINGERPRINT = enableFingerprint.checked;
-    app.settings.security.MAX_VOTES_PER_USER_PER_HOUR = parseInt(maxVotesPerHour.value) || 50;
-    
-    // Обновляем в Supabase
-    if (app.supabase && app.supabase.updateSecurityConfig) {
-        await app.supabase.updateSecurityConfig(app.settings.security);
-    }
-    
-    // Сохраняем локально
-    saveSecuritySettings();
-    
-    // Обновляем fingerprint если нужно
-    if (app.settings.security.ENABLE_FINGERPRINT && app.user.fingerprint === 'no_fp') {
-        app.user.fingerprint = await generateFingerprint();
-    } else if (!app.settings.security.ENABLE_FINGERPRINT) {
-        app.user.fingerprint = 'no_fp';
-    }
-    
-    showNotification('✅ Настройки безопасности сохранены', 'success');
-}
-
-async function showSecurityLogs() {
-    if (!app.supabase) {
-        showNotification('❌ Логи доступны только в режиме Supabase', 'error');
-        return;
-    }
-    
-    try {
-        const logs = await app.supabase.getSecurityLogs(50);
-        const container = document.getElementById('securityLogs');
-        
-        if (!container) return;
-        
-        let html = '';
-        
-        if (logs.length === 0) {
-            html = '<div class="empty-state">Логов безопасности пока нет</div>';
-        } else {
-            logs.forEach(log => {
-                const time = new Date(log.created_at).toLocaleTimeString();
-                const typeClass = log.event_type.includes('blocked') ? 'log-blocked' : 
-                                 log.event_type.includes('success') ? 'log-success' : 'log-info';
-                
-                html += `
-                    <div class="security-log-item ${typeClass}">
-                        <div class="log-time">${time}</div>
-                        <div class="log-type">${log.event_type}</div>
-                        <div class="log-message">${log.message}</div>
-                        <div class="log-details">
-                            <small>User: ${log.user_id}</small>
-                            ${log.fingerprint ? `<small>FP: ${log.fingerprint.substring(0, 8)}...</small>` : ''}
-                        </div>
-                    </div>
-                `;
-            });
-        }
-        
-        container.innerHTML = html;
-        document.getElementById('securityModal').style.display = 'flex';
-        
-    } catch (error) {
-        console.error('Ошибка получения логов:', error);
-        showNotification('❌ Не удалось загрузить логи', 'error');
-    }
-}
-
-function closeVideoModal() {
-    const modal = document.getElementById('videoModal');
-    const playerContainer = document.getElementById('videoPlayerContainer');
-    
-    if (playerContainer) {
-        playerContainer.innerHTML = '';
-    }
-    
-    modal.style.display = 'none';
-    app.currentVideoCategory = null;
-}
-
-// ... остальные функции остаются без изменений ...
-
 // 🎵 МУЗЫКА И ТЕМА
 function toggleMusic() {
     const music = document.getElementById('backgroundMusic');
     const btn = document.getElementById('musicBtn');
+    
+    if (!music || !btn) return;
     
     if (app.settings.music) {
         music.pause();
@@ -962,6 +1017,8 @@ function toggleMusic() {
 
 function toggleTheme() {
     const btn = document.getElementById('themeBtn');
+    if (!btn) return;
+    
     const currentTheme = document.documentElement.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     
@@ -1058,7 +1115,12 @@ async function exportData() {
     }
 }
 
+// 🔔 УВЕДОМЛЕНИЯ
 function showNotification(message, type = 'info', duration = 3000) {
+    // Удаляем старые уведомления
+    const oldNotifications = document.querySelectorAll('.notification');
+    oldNotifications.forEach(n => n.remove());
+    
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
     
@@ -1073,19 +1135,41 @@ function showNotification(message, type = 'info', duration = 3000) {
     
     document.body.appendChild(notification);
     
+    // Позиционируем
+    notification.style.top = '20px';
+    notification.style.right = '20px';
+    
     setTimeout(() => {
-        notification.remove();
+        if (notification.parentNode) {
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => notification.remove(), 300);
+        }
     }, duration);
+}
+
+function showBlockReason() {
+    const reason = checkIfBlocked();
+    if (reason) {
+        showNotification(`⛔ ${reason}`, 'warning');
+    } else {
+        showNotification('❌ Голосование недоступно', 'error');
+    }
 }
 
 function playSound(type) {
     if (type === 'success') {
-        const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3');
-        audio.volume = 0.3;
-        audio.play().catch(e => console.log('Звук заблокирован'));
+        try {
+            const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3');
+            audio.volume = 0.3;
+            audio.play().catch(e => console.log('Звук заблокирован'));
+        } catch (e) {
+            console.log('Ошибка воспроизведения звука');
+        }
     }
 }
 
+// ✨ ЧАСТИЦЫ
 function initParticles() {
     if (window.particlesJS) {
         particlesJS('particles-js', {
@@ -1121,4 +1205,85 @@ function initParticles() {
             }
         });
     }
+}
+
+// 📁 СОХРАНЕНИЕ И ЗАГРУЗКА ДАННЫХ
+function saveAllData() {
+    try {
+        const data = {
+            categories: app.categories,
+            user: app.user,
+            security: app.security,
+            settings: app.settings
+        };
+        
+        localStorage.setItem('slay68_full_data', JSON.stringify(data));
+        console.log('💾 Все данные сохранены');
+        return true;
+    } catch (error) {
+        console.error('Ошибка сохранения данных:', error);
+        return false;
+    }
+}
+
+function loadAllData() {
+    try {
+        const saved = localStorage.getItem('slay68_full_data');
+        if (saved) {
+            const data = JSON.parse(saved);
+            
+            // Восстанавливаем категории
+            Object.keys(data.categories || {}).forEach(catId => {
+                if (app.categories[catId]) {
+                    app.categories[catId].candidates = data.categories[catId].candidates || [];
+                }
+            });
+            
+            // Восстанавливаем пользователя
+            app.user.votedCategories = data.user?.votedCategories || {};
+            app.user.voteStats = data.user?.voteStats || { votesToday: 0, votesThisHour: 0, lastVoteTime: null };
+            
+            console.log('✅ Все данные загружены');
+            return true;
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки данных:', error);
+    }
+    return false;
+}
+
+// 🌐 АВТОСОХРАНЕНИЕ
+setInterval(() => {
+    saveLocalVotes();
+    saveUserSettings();
+}, 30000); // Каждые 30 секунд
+
+// 📱 ОБРАБОТЧИКИ ОШИБОК
+window.addEventListener('error', function(e) {
+    console.error('Глобальная ошибка:', e.error);
+    showNotification('⚠️ Произошла ошибка. Попробуйте обновить страницу.', 'warning');
+});
+
+window.addEventListener('unhandledrejection', function(e) {
+    console.error('Необработанный промис:', e.reason);
+});
+
+// 🚀 ЭКСПОРТ ГЛОБАЛЬНЫХ ФУНКЦИЙ
+window.openCategoryModal = openCategoryModal;
+window.closeCategoryModal = closeCategoryModal;
+window.openAddCandidateModal = openAddCandidateModal;
+window.submitCandidate = submitCandidate;
+window.showAdminPanel = showAdminPanel;
+window.closeAdminPanel = closeAdminPanel;
+window.loginAdmin = loginAdmin;
+window.resetAllVotes = resetAllVotes;
+window.exportData = exportData;
+window.toggleMusic = toggleMusic;
+window.toggleTheme = toggleTheme;
+
+// Инициализация при загрузке
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
 }

@@ -1,22 +1,22 @@
-// 🔧 КОНФИГУРАЦИЯ С ЗАЩИТОЙ
+// === GLITCH CYBERPUNK AWARDS 2025 ===
+// Полностью рабочий скрипт для GitHub Pages
+
+// 🔧 КОНФИГУРАЦИЯ
 const CONFIG = {
-    ADMIN_PASSWORD: "Marshlopopo228!",
-    USE_SUPABASE: false, // По умолчанию локальный режим для GitHub Pages
+    ADMIN_PASSWORD: "Glitch2025!",
+    USE_SUPABASE: false, // По умолчанию локальный режим
     
     // Защита от накрутки
     SECURITY: {
-        MAX_VOTES_PER_USER_PER_HOUR: 50,
-        MAX_VOTES_PER_FINGERPRINT_PER_HOUR: 30,
-        MIN_TIME_BETWEEN_VOTES_MS: 1000,
-        VOTE_COOLDOWN_MS: 3000,
-        BLOCK_DURATION_MS: 5 * 60 * 1000, // 5 минут
+        MAX_VOTES_PER_USER_PER_HOUR: 100,
+        MAX_VOTES_PER_FINGERPRINT_PER_HOUR: 50,
+        MIN_TIME_BETWEEN_VOTES_MS: 2000,
         ENABLE_FINGERPRINT: true,
-        TEMP_BLOCK_AFTER_FAILED_ATTEMPTS: 5,
-        PERM_BLOCK_AFTER_FAILED_ATTEMPTS: 20
+        BLOCK_DURATION_MS: 10 * 60 * 1000 // 10 минут
     },
     
-    // Другие настройки
-    MAX_VIDEO_SIZE: 100 * 1024 * 1024
+    // Время автосохранения
+    AUTO_SAVE_INTERVAL: 30000 // 30 секунд
 };
 
 // 🎮 СОСТОЯНИЕ ПРИЛОЖЕНИЯ
@@ -26,357 +26,345 @@ let app = {
         id: null,
         fingerprint: null,
         votedCategories: {},
-        lastVote: 0,
-        voteStats: {
-            votesToday: 0,
-            votesThisHour: 0,
-            lastVoteTime: null
-        }
+        votesHistory: [],
+        lastVoteTime: null,
+        totalVotes: 0
     },
     settings: {
-        music: true,
+        sound: true,
         theme: 'dark',
-        volume: 0.3,
-        security: { ...CONFIG.SECURITY }
+        volume: 0.3
     },
-    supabase: null,
-    currentModalCategory: null,
-    currentVideoCategory: null,
-    
-    // Защита от накрутки
-    security: {
-        voteAttempts: 0,
-        failedAttempts: 0,
-        lastVoteTime: 0,
-        blockedUntil: 0,
-        voteHistory: [],
-        isBlocked: false,
-        blockReason: null
+    stats: {
+        totalVotes: 0,
+        totalVoters: 0,
+        totalCandidates: 0,
+        startTime: Date.now()
     }
 };
 
 // 🚀 ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ
 function initApp() {
-    console.log('🚀 SLAY 68 с защитой запускается...');
+    console.log('⚡ GLITCH AWARDS 2025 запускается...');
     
-    // Загружаем настройки безопасности
-    loadSecuritySettings();
+    // Инициализация пользователя
+    initUser();
     
-    // Генерируем ID пользователя с защитой
-    generateSecureUserId();
-    console.log('👤 Безопасный ID пользователя:', app.user.id.substring(0, 20) + '...');
+    // Загрузка данных
+    loadData();
     
-    // Генерируем fingerprint
-    if (app.settings.security.ENABLE_FINGERPRINT) {
-        generateFingerprint();
-    } else {
-        app.user.fingerprint = 'no_fp';
-        console.log('🔓 Fingerprint защита отключена');
-    }
-    
-    // Загружаем локальные настройки
-    loadUserSettings();
-    
-    // Инициализируем локальные данные
-    initLocalData();
-    
-    // Настраиваем события и рендерим
+    // Настройка событий
     setupEvents();
+    
+    // Рендеринг интерфейса
     renderAll();
-    initParticles();
     
-    // Показываем предупреждение о защите
-    if (app.settings.security.ENABLE_FINGERPRINT) {
-        console.log('🛡️ Защита от накрутки активирована');
-    }
+    // Запуск таймеров
+    startTimers();
     
-    console.log('✅ Приложение готово с защитой!');
+    console.log('✅ GLITCH SYSTEM ONLINE');
+    showNotification('⚡ GLITCH SYSTEM ONLINE', 'success');
 }
 
-// 📋 ИНИЦИАЛИЗАЦИЯ ВСЕХ КАТЕГОРИЙ
-function initAllCategories() {
-    console.log('📋 Инициализация всех категорий...');
-    
-    // Основные категории
-    const categories = {
-        // 👑 Королевские
-        'slay-king': {
-            id: 'slay-king',
-            name: 'SLAY KING 68',
-            icon: 'crown',
-            color: '#ffd700',
-            description: 'Король космических мемов',
-            type: 'royal',
-            candidates: [
-                { id: 'king1', name: 'MEME_LORD', votes: 42, description: 'Повелитель мемов' },
-                { id: 'king2', name: 'КОСМОС', votes: 38, description: 'Покоритель вселенной' },
-                { id: 'king3', name: 'SLAY STAR', votes: 25, description: 'Звезда года' }
-            ]
-        },
-        'slay-queen': {
-            id: 'slay-queen',
-            name: 'SLAY QUEEN 68',
-            icon: 'crown',
-            color: '#ff00ff',
-            description: 'Королева космических мемов',
-            type: 'royal',
-            candidates: [
-                { id: 'queen1', name: 'КОРОЛЕВА МЕМОВ', votes: 35, description: 'Владычица мемов' },
-                { id: 'queen2', name: 'ЛУНА', votes: 28, description: 'Ночная правительница' },
-                { id: 'queen3', name: 'GALAXY QUEEN', votes: 22, description: 'Королева галактики' }
-            ]
-        },
-        
-        // 🏆 ВАШИ НОВЫЕ КАТЕГОРИИ
-        'meme-year': {
-            id: 'meme-year',
-            name: 'МЕМ ГОДА',
-            icon: 'laugh-beam',
-            color: '#ff6b6b',
-            description: 'Самый смешной и вирусный мем 2025',
-            type: 'regular',
-            candidates: [
-                { id: 'm1', name: 'Космический Ждун', votes: 25, description: 'Ждун в скафандре' },
-                { id: 'm2', name: 'Шрек-мем 2025', votes: 18, description: 'Новая версия Шрека' },
-                { id: 'm3', name: 'Доге в космосе', votes: 15, description: 'Such space, wow' }
-            ]
-        },
-        'ship-year': {
-            id: 'ship-year',
-            name: 'ПАРА(ШИП) ГОДА',
-            icon: 'heart',
-            color: '#ff6b9d',
-            description: 'Лучшая пара или шипперская пара 2025',
-            type: 'regular',
-            candidates: [
-                { id: 's1', name: 'Астронавт & Луна', votes: 22, description: 'Космическая любовь' },
-                { id: 's2', name: 'Дроид & Робот', votes: 15, description: 'Техно-романтика' },
-                { id: 's3', name: 'SLAY & ROYAL', votes: 12, description: 'Королевский шип' }
-            ]
-        },
-        'dota-player-year': {
-            id: 'dota-player-year',
-            name: 'ДОТА ИГРОК ГОДА',
-            icon: 'gamepad',
-            color: '#4d96ff',
-            description: 'Лучший игрок в Dota 2 за 2025 год',
-            type: 'regular',
-            candidates: [
-                { id: 'd1', name: 'YATORO', votes: 32, description: 'Король керри' },
-                { id: 'd2', name: 'MIRACLE', votes: 28, description: 'Легенда' },
-                { id: 'd3', name: 'COLLAPSE', votes: 24, description: 'Непробиваемый' }
-            ]
-        },
-        'event-year': {
-            id: 'event-year',
-            name: 'МЕРОПРИЯТИЕ ГОДА',
-            icon: 'calendar-star',
-            color: '#6c5ce7',
-            description: 'Лучшее мероприятие или ивент 2025',
-            type: 'regular',
-            candidates: [
-                { id: 'e1', name: 'The International 2025', votes: 40, description: 'Майнор по Доте' },
-                { id: 'e2', name: 'Космофест', votes: 25, description: 'Фестиваль мемов' },
-                { id: 'e3', name: 'SLAY Awards', votes: 18, description: 'Церемония наград' }
-            ]
-        },
-        
-        // 📦 Другие существующие категории
-        'delivery-year': {
-            id: 'delivery-year',
-            name: 'ЗАВОЗ ГОДА',
-            icon: 'truck-fast',
-            color: '#00cec9',
-            description: 'Лучший завоз или поставка года',
-            type: 'regular',
-            candidates: [
-                { id: 'del1', name: 'Космическая пицца', votes: 20, description: 'Доставка на орбиту' },
-                { id: 'del2', name: 'Мем-доставка', votes: 15, description: 'Свежие мемы каждый день' }
-            ]
-        },
-        'style-year': {
-            id: 'style-year',
-            name: 'СТИЛЬ ГОДА',
-            icon: 'tshirt',
-            color: '#e91e63',
-            description: 'Лучший стиль или образ года',
-            type: 'regular',
-            candidates: [
-                { id: 'st1', name: 'Космо-стиль', votes: 18, description: 'Космическая мода' },
-                { id: 'st2', name: 'Ретро-футуризм', votes: 12, description: 'Стиль будущего' }
-            ]
-        }
-    };
-    
-    // Инициализируем категории в app
-    Object.values(categories).forEach(cat => {
-        app.categories[cat.id] = {
-            ...cat,
-            videoUrl: null,
-            thumbnail: null,
-            isYouTube: false
-        };
-    });
-    
-    console.log(`✅ Инициализировано ${Object.keys(app.categories).length} категорий`);
-}
-
-// 🏠 ЛОКАЛЬНЫЕ ДАННЫЕ (запасной вариант)
-function initLocalData() {
-    console.log('🏠 Загрузка локальных данных...');
-    
-    // Инициализируем все категории
-    initAllCategories();
-    
-    // Загружаем сохраненные голоса
-    loadLocalVotes();
-}
-
-// 🔒 ГЕНЕРАЦИЯ БЕЗОПАСНОГО ID
-function generateSecureUserId() {
-    let userId = localStorage.getItem('slay68_secure_user_id');
-    
+// 👤 ИНИЦИАЛИЗАЦИЯ ПОЛЬЗОВАТЕЛЯ
+function initUser() {
+    // Генерация ID пользователя
+    let userId = localStorage.getItem('glitch_user_id');
     if (!userId) {
-        const timestamp = Date.now();
-        const random = Math.random().toString(36).substr(2, 16);
-        
-        userId = `user_${timestamp}_${random}`;
-        localStorage.setItem('slay68_secure_user_id', userId);
-        localStorage.setItem('slay68_user_created', timestamp);
-        
-        console.log('🆕 Создан новый защищенный ID пользователя');
+        userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('glitch_user_id', userId);
+    }
+    app.user.id = userId;
+    
+    // Генерация fingerprint
+    if (CONFIG.SECURITY.ENABLE_FINGERPRINT) {
+        let fingerprint = localStorage.getItem('glitch_fingerprint');
+        if (!fingerprint) {
+            fingerprint = generateFingerprint();
+            localStorage.setItem('glitch_fingerprint', fingerprint);
+        }
+        app.user.fingerprint = fingerprint;
     }
     
-    app.user.id = userId;
-    return userId;
+    console.log('👤 Пользователь:', app.user.id.substring(0, 15) + '...');
 }
 
 // 🔒 ГЕНЕРАЦИЯ FINGERPRINT
 function generateFingerprint() {
-    try {
-        const components = [];
-        
-        // Собираем данные о браузере и системе
-        components.push(navigator.userAgent);
-        components.push(`${screen.width}x${screen.height}x${screen.colorDepth}`);
-        components.push(navigator.language);
-        components.push(navigator.platform);
-        
-        // Добавляем случайные компоненты для уникальности
-        components.push(Math.random().toString(36).substr(2, 10));
-        components.push(Date.now().toString(36));
-        
-        // Создаем простой хэш (без crypto.subtle для совместимости)
-        const data = components.join('|');
-        let hash = 0;
-        
-        for (let i = 0; i < data.length; i++) {
-            const char = data.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash;
-        }
-        
-        const fingerprint = 'fp_' + Math.abs(hash).toString(36) + '_' + Date.now().toString(36);
-        app.user.fingerprint = fingerprint;
-        
-        console.log('🔒 Fingerprint:', fingerprint.substring(0, 20) + '...');
-        return fingerprint;
-        
-    } catch (error) {
-        console.error('Ошибка генерации fingerprint:', error);
-        // Fallback
-        const fallback = 'fp_fallback_' + Math.random().toString(36).substr(2, 32) + '_' + Date.now();
-        app.user.fingerprint = fallback;
-        return fallback;
+    const components = [
+        navigator.userAgent,
+        navigator.language,
+        screen.width + 'x' + screen.height,
+        navigator.platform,
+        Date.now().toString(36)
+    ];
+    
+    const data = components.join('|');
+    let hash = 0;
+    for (let i = 0; i < data.length; i++) {
+        const char = data.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
     }
+    
+    return 'fp_' + Math.abs(hash).toString(36) + '_' + Date.now().toString(36);
 }
 
-// 🔒 ЗАГРУЗКА НАСТРОЕК БЕЗОПАСНОСТИ
-function loadSecuritySettings() {
-    try {
-        const saved = localStorage.getItem('slay68_security_config');
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            app.settings.security = { ...app.settings.security, ...parsed };
-            console.log('✅ Настройки безопасности загружены');
-        }
-    } catch (error) {
-        console.warn('Не удалось загрузить настройки безопасности:', error);
-    }
+// 📁 ЗАГРУЗКА ДАННЫХ
+function loadData() {
+    console.log('📁 Загрузка данных...');
+    
+    // Загрузка настроек
+    loadSettings();
+    
+    // Загрузка голосов
+    loadVotes();
+    
+    // Инициализация категорий
+    initCategories();
+    
+    // Загрузка статистики
+    loadStats();
 }
 
-// 🔒 СОХРАНЕНИЕ НАСТРОЕК БЕЗОПАСНОСТИ
-function saveSecuritySettings() {
+// 💾 СОХРАНЕНИЕ ДАННЫХ
+function saveData() {
     try {
-        localStorage.setItem('slay68_security_config', JSON.stringify(app.settings.security));
-        console.log('✅ Настройки безопасности сохранены');
-        return true;
-    } catch (error) {
-        console.error('Ошибка сохранения настроек безопасности:', error);
-        return false;
-    }
-}
-
-// 💾 ЗАГРУЗКА ЛОКАЛЬНЫХ ГОЛОСОВ
-function loadLocalVotes() {
-    try {
-        const saved = localStorage.getItem('slay68_votes');
-        if (saved) {
-            const votes = JSON.parse(saved);
-            app.user.votedCategories = votes.votedCategories || {};
-            app.user.voteStats = votes.voteStats || { votesToday: 0, votesThisHour: 0, lastVoteTime: null };
-            
-            // Обновляем кандидатов
-            Object.keys(votes.candidates || {}).forEach(catId => {
-                if (app.categories[catId] && votes.candidates[catId]) {
-                    app.categories[catId].candidates = votes.candidates[catId];
-                }
-            });
-            
-            console.log('✅ Локальные голоса загружены');
-        }
-    } catch (error) {
-        console.warn('Не удалось загрузить локальные голоса:', error);
-    }
-}
-
-// 💾 СОХРАНЕНИЕ ЛОКАЛЬНЫХ ГОЛОСОВ
-function saveLocalVotes() {
-    try {
-        const data = {
+        // Сохраняем голоса
+        localStorage.setItem('glitch_votes', JSON.stringify({
             votedCategories: app.user.votedCategories,
-            voteStats: app.user.voteStats,
-            candidates: {}
-        };
+            votesHistory: app.user.votesHistory,
+            totalVotes: app.user.totalVotes
+        }));
         
-        // Сохраняем кандидатов по категориям
+        // Сохраняем кандидатов
+        const candidatesData = {};
         Object.keys(app.categories).forEach(catId => {
-            data.candidates[catId] = app.categories[catId].candidates;
+            candidatesData[catId] = app.categories[catId].candidates;
         });
+        localStorage.setItem('glitch_candidates', JSON.stringify(candidatesData));
         
-        localStorage.setItem('slay68_votes', JSON.stringify(data));
-        console.log('💾 Голоса сохранены');
-        return true;
+        // Сохраняем статистику
+        localStorage.setItem('glitch_stats', JSON.stringify(app.stats));
+        
+        console.log('💾 Данные сохранены');
     } catch (error) {
-        console.error('Ошибка сохранения голосов:', error);
-        return false;
+        console.error('❌ Ошибка сохранения:', error);
     }
+}
+
+// ⚙️ ИНИЦИАЛИЗАЦИЯ КАТЕГОРИЙ
+function initCategories() {
+    console.log('⚙️ Инициализация категорий...');
+    
+    // Основные категории
+    const categories = {
+        // 👑 Главные титулы
+        'glitch-king': {
+            id: 'glitch-king',
+            name: 'GLITCH KING',
+            icon: 'crown',
+            color: '#ffff00',
+            description: 'Король глитч мемов 2025',
+            type: 'royal',
+            candidates: [
+                { id: 'k1', name: 'CYBER MEME LORD', votes: 68, description: 'Повелитель кибер мемов' },
+                { id: 'k2', name: 'GLITCH PROPHET', votes: 42, description: 'Пророк глитчей' },
+                { id: 'k3', name: 'NEON OVERLORD', votes: 35, description: 'Владыка неона' }
+            ]
+        },
+        
+        'glitch-queen': {
+            id: 'glitch-queen',
+            name: 'GLITCH QUEEN',
+            icon: 'crown',
+            color: '#ff00ff',
+            description: 'Королева глитч мемов 2025',
+            type: 'royal',
+            candidates: [
+                { id: 'q1', name: 'SYNTHWAVE QUEEN', votes: 55, description: 'Королева синтвейва' },
+                { id: 'q2', name: 'PIXEL GODDESS', votes: 38, description: 'Богиня пикселей' },
+                { id: 'q3', name: 'CYBER DIVA', votes: 29, description: 'Кибер дива' }
+            ]
+        },
+        
+        // 🏆 Ваши новые категории
+        'meme-year': {
+            id: 'meme-year',
+            name: 'МЕМ ГОДА',
+            icon: 'laugh-beam',
+            color: '#00ff88',
+            description: 'Самый вирусный мем 2025',
+            type: 'regular',
+            candidates: [
+                { id: 'm1', name: 'GLITCH DOGE', votes: 45, description: 'Собака в матрице' },
+                { id: 'm2', name: 'NEON PEPE', votes: 32, description: 'Радужная лягушка' },
+                { id: 'm3', name: 'CYBER CAT', votes: 28, description: 'Кот хакер' }
+            ]
+        },
+        
+        'ship-year': {
+            id: 'ship-year',
+            name: 'ПАРА(ШИП) ГОДА',
+            icon: 'heart',
+            color: '#ff00ff',
+            description: 'Лучшая пара/шип 2025',
+            type: 'regular',
+            candidates: [
+                { id: 's1', name: 'CYBER x PUNK', votes: 38, description: 'Киберпанк любовь' },
+                { id: 's2', name: 'GLITCH x MATRIX', votes: 25, description: 'Любовь в матрице' },
+                { id: 's3', name: 'NEON x SYNC', votes: 19, description: 'Неоновая гармония' }
+            ]
+        },
+        
+        'dota-player-year': {
+            id: 'dota-player-year',
+            name: 'ДОТА ИГРОК ГОДА',
+            icon: 'gamepad',
+            color: '#00ffff',
+            description: 'Лучший игрок в Dota 2 2025',
+            type: 'regular',
+            candidates: [
+                { id: 'd1', name: 'YATORO', votes: 52, description: 'Король керри' },
+                { id: 'd2', name: 'MIRACLE-', votes: 41, description: 'Легенда Mid' },
+                { id: 'd3', name: 'COLLAPSE', votes: 33, description: 'Непробиваемая стена' }
+            ]
+        },
+        
+        'event-year': {
+            id: 'event-year',
+            name: 'МЕРОПРИЯТИЕ ГОДА',
+            icon: 'calendar-star',
+            color: '#ff7700',
+            description: 'Лучшее мероприятие 2025',
+            type: 'regular',
+            candidates: [
+                { id: 'e1', name: 'THE INTERNATIONAL 2025', votes: 65, description: 'TI по Доте' },
+                { id: 'e2', name: 'GLITCH CON 2025', votes: 42, description: 'Киберпанк конвент' },
+                { id: 'e3', name: 'CYBER AWARDS', votes: 28, description: 'Церемония наград' }
+            ]
+        },
+        
+        // 📦 Дополнительные категории
+        'stream-year': {
+            id: 'stream-year',
+            name: 'СТРИМ ГОДА',
+            icon: 'broadcast-tower',
+            color: '#9d00ff',
+            description: 'Лучший стрим/стример 2025',
+            type: 'regular',
+            candidates: [
+                { id: 'st1', name: 'NEON STREAMER', votes: 31, description: '24/7 стримы' },
+                { id: 'st2', name: 'CYBER CASTER', votes: 24, description: 'Профессиональный кастер' }
+            ]
+        },
+        
+        'music-year': {
+            id: 'music-year',
+            name: 'ТРЕК ГОДА',
+            icon: 'music',
+            color: '#ff0088',
+            description: 'Лучший музыкальный трек 2025',
+            type: 'regular',
+            candidates: [
+                { id: 'mu1', name: 'SYNTHWAVE SUNSET', votes: 37, description: 'Закат в неоне' },
+                { id: 'mu2', name: 'CYBER DREAMS', votes: 25, description: 'Кибер мечты' }
+            ]
+        },
+        
+        'game-year': {
+            id: 'game-year',
+            name: 'ИГРА ГОДА',
+            icon: 'gamepad',
+            color: '#00aaff',
+            description: 'Лучшая игра 2025',
+            type: 'regular',
+            candidates: [
+                { id: 'g1', name: 'CYBERPUNK 2077: 2.0', votes: 48, description: 'Возрождение' },
+                { id: 'g2', name: 'DOTA 3', votes: 36, description: 'Новая эра' }
+            ]
+        }
+    };
+    
+    // Загружаем сохранённых кандидатов
+    try {
+        const savedCandidates = JSON.parse(localStorage.getItem('glitch_candidates') || '{}');
+        
+        Object.keys(categories).forEach(catId => {
+            const category = categories[catId];
+            
+            // Если есть сохранённые кандидаты, используем их
+            if (savedCandidates[catId] && savedCandidates[catId].length > 0) {
+                category.candidates = savedCandidates[atId];
+            }
+            
+            app.categories[catId] = category;
+        });
+    } catch (error) {
+        console.error('Ошибка загрузки кандидатов:', error);
+        // Используем кандидаты по умолчанию
+        Object.keys(categories).forEach(catId => {
+            app.categories[catId] = categories[catId];
+        });
+    }
+    
+    console.log(`✅ Загружено ${Object.keys(app.categories).length} категорий`);
+}
+
+// ⚙️ НАСТРОЙКА СОБЫТИЙ
+function setupEvents() {
+    // Админ кнопка
+    const adminBtn = document.getElementById('adminBtn');
+    if (adminBtn) {
+        adminBtn.addEventListener('click', showAdminPanel);
+    }
+    
+    // Тема
+    const themeBtn = document.getElementById('themeBtn');
+    if (themeBtn) {
+        themeBtn.addEventListener('click', toggleTheme);
+    }
+    
+    // Звук
+    const soundBtn = document.getElementById('soundBtn');
+    if (soundBtn) {
+        soundBtn.addEventListener('click', toggleSound);
+    }
+    
+    // Клик вне модалок
+    document.addEventListener('click', function(e) {
+        const modals = ['categoryModal', 'adminModal'];
+        modals.forEach(modalId => {
+            const modal = document.getElementById(modalId);
+            if (modal && modal.style.display === 'flex' && e.target === modal) {
+                closeModal(modalId);
+            }
+        });
+    });
+    
+    // Escape для закрытия модалок
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeModal('categoryModal');
+            closeModal('adminModal');
+        }
+    });
 }
 
 // 🎨 РЕНДЕРИНГ
 function renderAll() {
     renderStats();
     renderRoyalCategories();
-    renderRegularCategories();
-    updateAdminView();
+    renderAllCategories();
+    updateUptime();
 }
 
 // 📊 РЕНДЕРИНГ СТАТИСТИКИ
 function renderStats() {
     try {
+        // Подсчитываем статистику
         let totalVotes = 0;
         let totalCandidates = 0;
-        let uniqueVoters = 0;
         
         Object.values(app.categories).forEach(category => {
             category.candidates.forEach(candidate => {
@@ -385,18 +373,16 @@ function renderStats() {
             totalCandidates += category.candidates.length;
         });
         
-        // Уникальные голосующие - считаем по votedCategories
-        uniqueVoters = Object.keys(app.user.votedCategories).length;
+        const totalVoters = Object.keys(app.user.votedCategories).length;
         
+        // Обновляем DOM
         document.getElementById('liveVotes').textContent = totalVotes;
-        document.getElementById('liveVoters').textContent = uniqueVoters;
+        document.getElementById('liveVoters').textContent = totalVoters;
         document.getElementById('liveCandidates').textContent = totalCandidates;
         
-        // Обновляем админ статистику
-        if (document.getElementById('adminTotalVotes')) {
-            document.getElementById('adminTotalVotes').textContent = totalVotes;
-            document.getElementById('adminUniqueVoters').textContent = uniqueVoters;
-        }
+        // Обновляем объект статистики
+        app.stats.totalVotes = totalVotes;
+        app.stats.totalCandidates = totalCandidates;
         
     } catch (error) {
         console.error('❌ Ошибка рендеринга статистики:', error);
@@ -405,8 +391,8 @@ function renderStats() {
 
 // 👑 РЕНДЕРИНГ КОРОЛЕВСКИХ КАТЕГОРИЙ
 function renderRoyalCategories() {
-    renderRoyalCategory('slay-king', 'kingContent');
-    renderRoyalCategory('slay-queen', 'queenContent');
+    renderRoyalCategory('glitch-king', 'kingContent');
+    renderRoyalCategory('glitch-queen', 'queenContent');
 }
 
 function renderRoyalCategory(categoryId, elementId) {
@@ -422,18 +408,21 @@ function renderRoyalCategory(categoryId, elementId) {
             <div class="empty-state">
                 <i class="fas fa-user-plus"></i>
                 <p>Кандидатов пока нет</p>
-                <button onclick="openAddCandidateModal('${categoryId}')" class="btn-add-small">
-                    <i class="fas fa-plus"></i> Добавить
+                <button class="btn-add-small" onclick="openAddCandidateModal('${categoryId}')">
+                    <i class="fas fa-plus"></i> Добавить первого
                 </button>
             </div>
         `;
     } else {
         const totalVotes = candidates.reduce((sum, c) => sum + (c.votes || 0), 0);
         
-        candidates.forEach((candidate, index) => {
+        // Сортируем по голосам
+        const sortedCandidates = [...candidates].sort((a, b) => (b.votes || 0) - (a.votes || 0));
+        
+        sortedCandidates.forEach((candidate, index) => {
             const hasVoted = app.user.votedCategories[categoryId];
             const percentage = totalVotes > 0 ? Math.round(((candidate.votes || 0) / totalVotes) * 100) : 0;
-            const canVote = !hasVoted && !checkIfBlocked();
+            const canVote = !hasVoted && canUserVote();
             
             html += `
                 <div class="candidate-royal">
@@ -442,19 +431,23 @@ function renderRoyalCategory(categoryId, elementId) {
                     </div>
                     <div class="candidate-info">
                         <div class="candidate-name">${candidate.name}</div>
-                        ${candidate.description ? `<div class="candidate-desc">${candidate.description}</div>` : ''}
+                        <div class="candidate-desc">${candidate.description || ''}</div>
                         <div class="candidate-progress">
                             <div class="candidate-progress-bar" style="width: ${percentage}%; background: ${category.color}"></div>
                         </div>
                     </div>
-                    <div class="candidate-votes">${candidate.votes || 0}</div>
+                    <div class="candidate-votes" style="color: ${category.color}">
+                        ${candidate.votes || 0}
+                    </div>
                     <button class="vote-btn-royal ${hasVoted ? 'voted' : ''} ${!canVote ? 'disabled' : ''}" 
-                            onclick="${canVote ? `voteForCandidate('${categoryId}', '${candidate.id}')` : 'showBlockReason()'}"
+                            onclick="${canVote ? `vote('${categoryId}', '${candidate.id}')` : 'showVoteError()'}"
                             ${!canVote ? 'disabled' : ''}
-                            style="background: ${category.color}">
-                        ${hasVoted ? '<i class="fas fa-check"></i> ГОЛОС ПОДТВЕРЖДЕН' : 
-                          canVote ? '<i class="fas fa-vote-yea"></i> ГОЛОСОВАТЬ' : 
-                          '<i class="fas fa-ban"></i> НЕДОСТУПНО'}
+                            style="background: linear-gradient(45deg, ${category.color}, ${category.color}88)">
+                        ${hasVoted ? 
+                            '<i class="fas fa-check"></i> ГОЛОС УЧТЁН' : 
+                            canVote ? 
+                            '<i class="fas fa-vote-yea"></i> ГОЛОСОВАТЬ' : 
+                            '<i class="fas fa-ban"></i> НЕДОСТУПНО'}
                     </button>
                 </div>
             `;
@@ -464,40 +457,48 @@ function renderRoyalCategory(categoryId, elementId) {
     container.innerHTML = html;
 }
 
-// 🏆 РЕНДЕРИНГ ОБЫЧНЫХ КАТЕГОРИЙ
-function renderRegularCategories() {
+// 🏆 РЕНДЕРИНГ ВСЕХ КАТЕГОРИЙ
+function renderAllCategories() {
     const container = document.getElementById('categoriesContainer');
     if (!container) return;
     
     let html = '';
     
-    // Только обычные категории (не королевские)
-    const regularCategories = Object.values(app.categories).filter(cat => 
-        cat.type !== 'royal'
-    );
+    // Фильтруем только обычные категории
+    const regularCategories = Object.values(app.categories).filter(cat => cat.type === 'regular');
     
     regularCategories.forEach(category => {
         const totalVotes = category.candidates.reduce((sum, c) => sum + (c.votes || 0), 0);
         const candidateCount = category.candidates.length;
+        const topCandidate = category.candidates.length > 0 ? 
+            category.candidates.reduce((a, b) => (a.votes || 0) > (b.votes || 0) ? a : b) : 
+            null;
         
         html += `
-            <div class="category-card" data-category="${category.id}">
+            <div class="category-card" onclick="openCategoryModal('${category.id}')">
                 <div class="category-header">
-                    <div class="category-icon" style="background: ${category.color}">
+                    <div class="category-icon" style="background: ${category.color}22; color: ${category.color}">
                         <i class="fas fa-${category.icon}"></i>
                     </div>
-                    <h3>${category.name}</h3>
+                    <h3 style="color: ${category.color}">${category.name}</h3>
                 </div>
                 <p>${category.description}</p>
                 <div class="category-stats">
-                    <span><i class="fas fa-users"></i> ${totalVotes} голосов</span>
-                    <span><i class="fas fa-user-plus"></i> ${candidateCount} кандидатов</span>
+                    <span><i class="fas fa-users" style="color: ${category.color}"></i> ${totalVotes} голосов</span>
+                    <span><i class="fas fa-user-plus" style="color: ${category.color}"></i> ${candidateCount} кандидатов</span>
                 </div>
-                <div class="category-body" id="${category.id}-candidates-preview">
-                    ${renderCategoryPreview(category.id)}
+                <div class="category-preview">
+                    ${topCandidate ? `
+                        <div class="top-candidate">
+                            <span class="candidate-medal">🥇</span>
+                            <span class="candidate-name">${topCandidate.name}</span>
+                            <span class="candidate-votes">${topCandidate.votes || 0}</span>
+                        </div>
+                    ` : '<p class="no-candidates">Нет кандидатов</p>'}
                 </div>
-                <button class="btn-add" onclick="openCategoryModal('${category.id}')">
-                    <i class="fas fa-vote-yea"></i> ${app.user.votedCategories[category.id] ? 'ПРОСМОТР' : 'ГОЛОСОВАТЬ'}
+                <button class="btn-add" style="background: linear-gradient(45deg, ${category.color}, ${category.color}88)">
+                    <i class="fas fa-${app.user.votedCategories[category.id] ? 'eye' : 'vote-yea'}"></i>
+                    ${app.user.votedCategories[category.id] ? 'ПРОСМОТР РЕЗУЛЬТАТОВ' : 'ПРОГОЛОСОВАТЬ'}
                 </button>
             </div>
         `;
@@ -506,35 +507,89 @@ function renderRegularCategories() {
     container.innerHTML = html;
 }
 
-// 👀 РЕНДЕРИНГ ПРЕВЬЮ КАТЕГОРИИ
-function renderCategoryPreview(categoryId) {
-    const category = app.categories[categoryId];
-    if (!category || category.candidates.length === 0) {
-        return '<div class="empty-preview">Кандидатов пока нет</div>';
+// 🗳️ ФУНКЦИЯ ГОЛОСОВАНИЯ
+window.vote = function(categoryId, candidateId) {
+    if (!canUserVote()) {
+        showNotification('⏳ Проверка доступности голосования...', 'warning');
+        return;
     }
     
-    const topCandidates = category.candidates
-        .sort((a, b) => (b.votes || 0) - (a.votes || 0))
-        .slice(0, 3);
+    if (app.user.votedCategories[categoryId]) {
+        showNotification('❌ Вы уже голосовали в этой категории', 'error');
+        return;
+    }
     
-    let html = '<div class="candidates-preview">';
+    const category = app.categories[categoryId];
+    const candidate = category?.candidates?.find(c => c.id === candidateId);
     
-    topCandidates.forEach((candidate, index) => {
-        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
-        html += `
-            <div class="preview-candidate">
-                <span class="preview-medal">${medal}</span>
-                <span class="preview-name">${candidate.name}</span>
-                <span class="preview-votes">${candidate.votes || 0}</span>
-            </div>
-        `;
-    });
+    if (!category || !candidate) {
+        showNotification('❌ Ошибка: кандидат не найден', 'error');
+        return;
+    }
     
-    html += '</div>';
-    return html;
+    try {
+        // Увеличиваем голоса
+        candidate.votes = (candidate.votes || 0) + 1;
+        
+        // Отмечаем голосование
+        app.user.votedCategories[categoryId] = true;
+        app.user.totalVotes++;
+        app.user.lastVoteTime = Date.now();
+        app.user.votesHistory.push({
+            categoryId,
+            candidateId,
+            time: new Date().toISOString(),
+            candidateName: candidate.name
+        });
+        
+        // Сохраняем
+        saveData();
+        
+        // Обновляем интерфейс
+        renderAll();
+        
+        // Показываем уведомление
+        showNotification(`✅ Вы проголосовали за "${candidate.name}"!`, 'success');
+        playSound('vote');
+        
+        // Обновляем статистику
+        updateStats();
+        
+    } catch (error) {
+        console.error('❌ Ошибка голосования:', error);
+        showNotification('❌ Ошибка при голосовании', 'error');
+    }
+};
+
+// 🔒 ПРОВЕРКА ВОЗМОЖНОСТИ ГОЛОСОВАНИЯ
+function canUserVote() {
+    const now = Date.now();
+    
+    // Проверка на флуд
+    if (app.user.lastVoteTime) {
+        const timeSinceLastVote = now - app.user.lastVoteTime;
+        if (timeSinceLastVote < CONFIG.SECURITY.MIN_TIME_BETWEEN_VOTES_MS) {
+            const waitSeconds = Math.ceil((CONFIG.SECURITY.MIN_TIME_BETWEEN_VOTES_MS - timeSinceLastVote) / 1000);
+            showNotification(`⏳ Подождите ${waitSeconds} секунд`, 'warning');
+            return false;
+        }
+    }
+    
+    // Проверка лимитов
+    const votesLastHour = app.user.votesHistory.filter(vote => {
+        const voteTime = new Date(vote.time).getTime();
+        return now - voteTime < 60 * 60 * 1000;
+    }).length;
+    
+    if (votesLastHour >= CONFIG.SECURITY.MAX_VOTES_PER_USER_PER_HOUR) {
+        showNotification(`⏳ Лимит голосов (${CONFIG.SECURITY.MAX_VOTES_PER_USER_PER_HOUR}/час)`, 'warning');
+        return false;
+    }
+    
+    return true;
 }
 
-// 🪟 ФУНКЦИИ МОДАЛЬНЫХ ОКОН
+// 📁 ОТКРЫТИЕ МОДАЛКИ КАТЕГОРИИ
 function openCategoryModal(categoryId) {
     const category = app.categories[categoryId];
     if (!category) return;
@@ -543,64 +598,87 @@ function openCategoryModal(categoryId) {
     const title = document.getElementById('modalCategoryTitle');
     const body = document.getElementById('modalCategoryBody');
     
-    if (!modal || !title || !body) {
-        console.error('Модальное окно не найдено');
-        return;
-    }
+    if (!modal || !title || !body) return;
     
     title.textContent = category.name;
+    title.style.color = category.color;
     
-    // Рендерим кандидатов
-    let html = `<p class="modal-description">${category.description}</p>`;
+    let html = `
+        <div class="category-modal-header">
+            <p class="category-description">${category.description}</p>
+            <div class="category-stats-modal">
+                <span class="stat-badge" style="border-color: ${category.color}">
+                    <i class="fas fa-users"></i> 
+                    <span>${category.candidates.reduce((sum, c) => sum + (c.votes || 0), 0)} голосов</span>
+                </span>
+                <span class="stat-badge" style="border-color: ${category.color}">
+                    <i class="fas fa-user-plus"></i> 
+                    <span>${category.candidates.length} кандидатов</span>
+                </span>
+            </div>
+        </div>
+    `;
     
     if (category.candidates.length === 0) {
         html += `
             <div class="empty-state">
-                <i class="fas fa-user-plus"></i>
-                <p>Кандидатов пока нет. Будьте первым!</p>
-                <button onclick="openAddCandidateModal('${categoryId}')" class="btn-add">
+                <i class="fas fa-user-plus fa-3x" style="color: ${category.color}"></i>
+                <h3 style="color: ${category.color}">Кандидатов пока нет</h3>
+                <p>Будьте первым, кто добавит кандидата!</p>
+                <button class="btn-add" onclick="openAddCandidateForm('${categoryId}')" 
+                        style="background: linear-gradient(45deg, ${category.color}, ${category.color}88)">
                     <i class="fas fa-plus"></i> Добавить кандидата
                 </button>
             </div>
         `;
     } else {
-        html += '<div class="candidates-list">';
+        html += '<div class="candidates-list-modal">';
         
         // Сортируем по голосам
         const sortedCandidates = [...category.candidates].sort((a, b) => (b.votes || 0) - (a.votes || 0));
         
         sortedCandidates.forEach((candidate, index) => {
             const hasVoted = app.user.votedCategories[categoryId];
-            const canVote = !hasVoted && !checkIfBlocked();
-            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+            const canVote = !hasVoted && canUserVote();
+            const medals = ['🥇', '🥈', '🥉'];
+            const medal = medals[index] || `${index + 1}.`;
             
             html += `
-                <div class="candidate-card">
+                <div class="candidate-modal-card" style="border-left-color: ${category.color}">
                     <div class="candidate-rank">${medal}</div>
-                    <div class="candidate-info">
-                        <div class="candidate-name">${candidate.name}</div>
-                        ${candidate.description ? `<div class="candidate-desc">${candidate.description}</div>` : ''}
+                    <div class="candidate-info-modal">
+                        <div class="candidate-name-modal">${candidate.name}</div>
+                        <div class="candidate-desc-modal">${candidate.description || ''}</div>
                     </div>
-                    <div class="candidate-votes">${candidate.votes || 0}</div>
-                    <button class="vote-btn-modal ${hasVoted ? 'voted' : ''} ${!canVote ? 'disabled' : ''}"
-                            onclick="${canVote ? `voteForCandidate('${categoryId}', '${candidate.id}')` : 'showBlockReason()'}"
-                            ${!canVote ? 'disabled' : ''}>
-                        ${hasVoted ? '<i class="fas fa-check"></i> ✓' : 
-                          canVote ? '<i class="fas fa-vote-yea"></i> Голос' : 
-                          '<i class="fas fa-ban"></i> ✗'}
-                    </button>
+                    <div class="candidate-votes-modal" style="color: ${category.color}">
+                        ${candidate.votes || 0}
+                    </div>
+                    ${!hasVoted ? `
+                        <button class="vote-btn-modal ${!canVote ? 'disabled' : ''}" 
+                                onclick="${canVote ? `vote('${categoryId}', '${candidate.id}')` : 'showVoteError()'}"
+                                ${!canVote ? 'disabled' : ''}
+                                style="background: linear-gradient(45deg, ${category.color}, ${category.color}88)">
+                            <i class="fas fa-vote-yea"></i> ГОЛОС
+                        </button>
+                    ` : `
+                        <div class="voted-badge" style="background: ${category.color}22; color: ${category.color}">
+                            <i class="fas fa-check"></i> ВАШ ВЫБОР
+                        </div>
+                    `}
                 </div>
             `;
         });
         
         html += '</div>';
         
-        // Кнопка добавления кандидата
         if (!app.user.votedCategories[categoryId]) {
             html += `
-                <button onclick="openAddCandidateModal('${categoryId}')" class="btn-add" style="margin-top: 1.5rem;">
-                    <i class="fas fa-plus"></i> Добавить своего кандидата
-                </button>
+                <div class="add-candidate-section">
+                    <button class="btn-add-outline" onclick="openAddCandidateForm('${categoryId}')"
+                            style="border-color: ${category.color}; color: ${category.color}">
+                        <i class="fas fa-plus"></i> Добавить своего кандидата
+                    </button>
+                </div>
             `;
         }
     }
@@ -609,14 +687,8 @@ function openCategoryModal(categoryId) {
     modal.style.display = 'flex';
 }
 
-function closeCategoryModal() {
-    const modal = document.getElementById('categoryModal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
-
-function openAddCandidateModal(categoryId) {
+// ➕ ДОБАВЛЕНИЕ КАНДИДАТА
+function openAddCandidateForm(categoryId) {
     const category = app.categories[categoryId];
     if (!category) return;
     
@@ -625,32 +697,62 @@ function openAddCandidateModal(categoryId) {
     const body = document.getElementById('modalCategoryBody');
     
     title.textContent = `Добавить кандидата в ${category.name}`;
+    title.style.color = category.color;
     
     body.innerHTML = `
         <div class="add-candidate-form">
             <div class="form-group">
-                <label for="candidateName">Имя кандидата *</label>
-                <input type="text" id="candidateName" placeholder="Введите имя" maxlength="100">
+                <label for="candidateName" style="color: ${category.color}">
+                    <i class="fas fa-user-tag"></i> Имя кандидата *
+                </label>
+                <input type="text" id="candidateName" placeholder="Введите имя кандидата" maxlength="50"
+                       style="border-color: ${category.color}">
+                <div class="char-counter"><span id="nameCounter">0</span>/50</div>
             </div>
+            
             <div class="form-group">
-                <label for="candidateDesc">Описание (необязательно)</label>
-                <textarea id="candidateDesc" placeholder="Краткое описание" rows="3"></textarea>
+                <label for="candidateDesc" style="color: ${category.color}">
+                    <i class="fas fa-align-left"></i> Описание (необязательно)
+                </label>
+                <textarea id="candidateDesc" placeholder="Краткое описание кандидата" rows="3"
+                          style="border-color: ${category.color}"></textarea>
+                <div class="char-counter"><span id="descCounter">0</span>/200</div>
             </div>
+            
             <div class="form-actions">
-                <button onclick="closeCategoryModal()" class="btn-secondary">
-                    <i class="fas fa-times"></i> Отмена
+                <button class="btn-cancel" onclick="openCategoryModal('${categoryId}')">
+                    <i class="fas fa-arrow-left"></i> Назад
                 </button>
-                <button onclick="submitCandidate('${categoryId}')" class="btn-primary">
-                    <i class="fas fa-plus"></i> Добавить
+                <button class="btn-submit" onclick="addCandidate('${categoryId}')"
+                        style="background: linear-gradient(45deg, ${category.color}, ${category.color}88)">
+                    <i class="fas fa-plus"></i> Добавить кандидата
                 </button>
             </div>
         </div>
     `;
     
+    // Счётчики символов
+    const nameInput = document.getElementById('candidateName');
+    const descInput = document.getElementById('candidateDesc');
+    const nameCounter = document.getElementById('nameCounter');
+    const descCounter = document.getElementById('descCounter');
+    
+    if (nameInput && nameCounter) {
+        nameInput.addEventListener('input', function() {
+            nameCounter.textContent = this.value.length;
+        });
+    }
+    
+    if (descInput && descCounter) {
+        descInput.addEventListener('input', function() {
+            descCounter.textContent = this.value.length;
+        });
+    }
+    
     modal.style.display = 'flex';
 }
 
-async function submitCandidate(categoryId) {
+function addCandidate(categoryId) {
     const nameInput = document.getElementById('candidateName');
     const descInput = document.getElementById('candidateDesc');
     
@@ -664,190 +766,194 @@ async function submitCandidate(categoryId) {
         return;
     }
     
-    if (name.length > 100) {
-        showNotification('❌ Имя слишком длинное (макс. 100 символов)', 'error');
+    if (name.length > 50) {
+        showNotification('❌ Имя слишком длинное (макс. 50 символов)', 'error');
         return;
     }
     
-    try {
-        const candidateId = 'candidate_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        
-        // Добавляем кандидата
-        app.categories[categoryId].candidates.push({
-            id: candidateId,
-            name: name,
-            description: description,
-            votes: 0,
-            categoryId: categoryId
-        });
-        
-        // Сохраняем
-        saveLocalVotes();
-        
-        showNotification(`✅ Кандидат "${name}" добавлен!`, 'success');
-        closeCategoryModal();
-        
-        // Обновляем отображение
-        if (categoryId === 'slay-king' || categoryId === 'slay-queen') {
-            renderRoyalCategory(categoryId, categoryId === 'slay-king' ? 'kingContent' : 'queenContent');
-        } else {
-            renderRegularCategories();
-        }
-        
-        renderStats();
-        
-    } catch (error) {
-        console.error('Ошибка добавления кандидата:', error);
-        showNotification(`❌ ${error.message || 'Ошибка добавления'}`, 'error');
-    }
-}
-
-// 🔒 ПРОВЕРКА НА БЛОКИРОВКУ
-function checkIfBlocked() {
-    const now = Date.now();
-    
-    // Проверяем временную блокировку
-    if (now < app.security.blockedUntil) {
-        const remainingMinutes = Math.ceil((app.security.blockedUntil - now) / 1000 / 60);
-        app.security.isBlocked = true;
-        app.security.blockReason = `Вы заблокированы на ${remainingMinutes} минут`;
-        return app.security.blockReason;
-    }
-    
-    // Проверяем слишком частые голосования
-    const timeSinceLastVote = now - app.security.lastVoteTime;
-    if (timeSinceLastVote < app.settings.security.MIN_TIME_BETWEEN_VOTES_MS) {
-        const waitSeconds = Math.ceil((app.settings.security.MIN_TIME_BETWEEN_VOTES_MS - timeSinceLastVote) / 1000);
-        app.security.blockReason = `Подождите ${waitSeconds} секунд`;
-        return app.security.blockReason;
-    }
-    
-    // Проверяем количество неудачных попыток
-    if (app.security.failedAttempts >= app.settings.security.TEMP_BLOCK_AFTER_FAILED_ATTEMPTS) {
-        const blockTime = 10 * 60 * 1000; // 10 минут
-        app.security.blockedUntil = now + blockTime;
-        app.security.isBlocked = true;
-        app.security.blockReason = 'Слишком много неудачных попыток';
-        return app.security.blockReason;
-    }
-    
-    app.security.isBlocked = false;
-    app.security.blockReason = null;
-    return null;
-}
-
-// 🗳️ ГОЛОСОВАНИЕ (основная функция)
-window.voteForCandidate = async function(categoryId, candidateId) {
-    const now = Date.now();
-    
-    // Проверяем базовые ограничения
-    if (now - app.user.lastVote < app.settings.security.VOTE_COOLDOWN_MS) {
-        showNotification('Подождите перед следующим голосом', 'warning');
-        return;
-    }
-    
-    if (app.user.votedCategories[categoryId]) {
-        showNotification('Вы уже голосовали в этой категории', 'warning');
-        return;
-    }
-    
-    // Проверяем блокировку
-    if (app.security.blockedUntil > now) {
-        const minutesLeft = Math.ceil((app.security.blockedUntil - now) / 60000);
-        showNotification(`Вы заблокированы на ${minutesLeft} минут`, 'error');
+    if (description.length > 200) {
+        showNotification('❌ Описание слишком длинное (макс. 200 символов)', 'error');
         return;
     }
     
     try {
         const category = app.categories[categoryId];
-        const candidate = category.candidates.find(c => c.id === candidateId);
+        if (!category) return;
         
-        if (!candidate) {
-            throw new Error('Кандидат не найден');
-        }
+        // Создаём ID кандидата
+        const candidateId = 'candidate_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         
-        // Увеличиваем голос
-        candidate.votes = (candidate.votes || 0) + 1;
-        
-        // Обновляем состояние
-        app.user.votedCategories[categoryId] = true;
-        app.user.lastVote = now;
-        app.security.lastVoteTime = now;
-        app.security.voteAttempts++;
-        app.security.failedAttempts = 0; // Сбрасываем при успехе
-        
-        // Обновляем статистику
-        app.user.voteStats.votesThisHour++;
-        app.user.voteStats.lastVoteTime = now;
-        
-        // Сохраняем голоса
-        saveLocalVotes();
-        
-        // Обновляем отображение
-        closeCategoryModal();
-        
-        // Обновляем все отображение
-        if (categoryId === 'slay-king' || categoryId === 'slay-queen') {
-            renderRoyalCategory(categoryId, categoryId === 'slay-king' ? 'kingContent' : 'queenContent');
-        } else {
-            renderRegularCategories();
-        }
-        
-        renderStats();
-        
-        showNotification(`✅ Вы проголосовали за ${candidate.name}!`, 'success');
-        playSound('success');
-        
-        // Записываем в историю
-        app.security.voteHistory.push({
-            time: now,
-            category: categoryId,
-            candidate: candidateId,
-            candidateName: candidate.name
+        // Добавляем кандидата
+        category.candidates.push({
+            id: candidateId,
+            name: name,
+            description: description,
+            votes: 0,
+            addedBy: app.user.id,
+            addedAt: new Date().toISOString()
         });
         
-        // Ограничиваем историю
-        if (app.security.voteHistory.length > 100) {
-            app.security.voteHistory.shift();
-        }
+        // Сохраняем
+        saveData();
+        
+        // Обновляем интерфейс
+        openCategoryModal(categoryId);
+        
+        // Уведомление
+        showNotification(`✅ Кандидат "${name}" добавлен!`, 'success');
+        playSound('success');
         
     } catch (error) {
-        console.error('❌ Ошибка голосования:', error);
-        
-        app.security.failedAttempts++;
-        
-        showNotification(`❌ ${error.message || 'Ошибка голосования'}`, 'error');
-        
-        // Если много неудачных попыток - блокируем
-        if (app.security.failedAttempts >= 10) {
-            app.security.blockedUntil = Date.now() + 24 * 60 * 60 * 1000; // 24 часа
-            showNotification('🚫 Вы заблокированы на 24 часа за подозрительную активность', 'error');
-        }
+        console.error('❌ Ошибка добавления кандидата:', error);
+        showNotification('❌ Ошибка при добавлении кандидата', 'error');
     }
-};
+}
 
-// 🔄 СБРОС ВСЕХ ГОЛОСОВ
-async function resetAllVotes() {
-    // Первое подтверждение
-    if (!confirm('🚨 ВНИМАНИЕ: Вы собираетесь сбросить ВСЕ голоса.\n\nЭто действие:')) {
+// 🛠️ АДМИН ПАНЕЛЬ
+function showAdminPanel() {
+    const modal = document.getElementById('adminModal');
+    const body = document.getElementById('adminModal')?.querySelector('.modal-body');
+    
+    if (!modal || !body) return;
+    
+    // Если не авторизован - показываем форму входа
+    if (!isAdminAuthorized()) {
+        body.innerHTML = `
+            <div class="admin-login-form">
+                <div class="login-header">
+                    <i class="fas fa-terminal fa-3x neon-green"></i>
+                    <h3 class="neon-green">ROOT ACCESS REQUIRED</h3>
+                    <p class="terminal-text">> ВВЕДИТЕ КЛЮЧ ДОСТУПА</p>
+                </div>
+                
+                <div class="login-form">
+                    <div class="form-group">
+                        <label for="adminPassword" class="neon-cyan">
+                            <i class="fas fa-key"></i> КЛЮЧ ДОСТУПА
+                        </label>
+                        <input type="password" id="adminPassword" placeholder="••••••••••" 
+                               class="terminal-input">
+                        <div class="password-strength">
+                            <div class="strength-bar"></div>
+                            <div class="strength-bar"></div>
+                            <div class="strength-bar"></div>
+                            <div class="strength-bar"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="login-actions">
+                        <button class="btn-admin-cancel" onclick="closeModal('adminModal')">
+                            <i class="fas fa-times"></i> ОТМЕНА
+                        </button>
+                        <button class="btn-admin-login" onclick="adminLogin()">
+                            <i class="fas fa-sign-in-alt"></i> ВОЙТИ В СИСТЕМУ
+                        </button>
+                    </div>
+                    
+                    <div class="login-info terminal-text">
+                        > ТОЛЬКО ДЛЯ АДМИНИСТРАТОРОВ СИСТЕМЫ
+                    </div>
+                </div>
+            </div>
+        `;
+    } else {
+        // Показываем панель управления
+        body.innerHTML = `
+            <div class="admin-panel-content">
+                <div class="admin-stats">
+                    <div class="admin-stat-card">
+                        <div class="stat-icon-admin neon-bg-green">
+                            <i class="fas fa-server"></i>
+                        </div>
+                        <div class="stat-info-admin">
+                            <div class="stat-value-admin neon-green">${app.stats.totalVotes}</div>
+                            <div class="stat-label-admin">ВСЕГО ГОЛОСОВ</div>
+                        </div>
+                    </div>
+                    
+                    <div class="admin-stat-card">
+                        <div class="stat-icon-admin neon-bg-pink">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-info-admin">
+                            <div class="stat-value-admin neon-pink">${Object.keys(app.user.votedCategories).length}</div>
+                            <div class="stat-label-admin">УНИКАЛЬНЫХ ГОЛОСОВАВШИХ</div>
+                        </div>
+                    </div>
+                    
+                    <div class="admin-stat-card">
+                        <div class="stat-icon-admin neon-bg-cyan">
+                            <i class="fas fa-crown"></i>
+                        </div>
+                        <div class="stat-info-admin">
+                            <div class="stat-value-admin neon-cyan">${app.stats.totalCandidates}</div>
+                            <div class="stat-label-admin">КАНДИДАТОВ</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="admin-controls">
+                    <h3 class="neon-border-bottom">
+                        <i class="fas fa-sliders-h"></i> УПРАВЛЕНИЕ СИСТЕМОЙ
+                    </h3>
+                    
+                    <div class="control-buttons">
+                        <button class="btn-admin-control" onclick="exportData()">
+                            <i class="fas fa-download"></i> ЭКСПОРТ ДАННЫХ
+                        </button>
+                        
+                        <button class="btn-admin-control btn-admin-danger" onclick="resetVotes()">
+                            <i class="fas fa-trash"></i> СБРОСИТЬ ГОЛОСА
+                        </button>
+                        
+                        <button class="btn-admin-control" onclick="clearLocalData()">
+                            <i class="fas fa-eraser"></i> ОЧИСТИТЬ ЛОКАЛЬНЫЕ ДАННЫЕ
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="admin-info terminal-text">
+                    > СИСТЕМА ЗАПУЩЕНА: ${new Date(app.stats.startTime).toLocaleString()}
+                </div>
+            </div>
+        `;
+    }
+    
+    modal.style.display = 'flex';
+}
+
+function adminLogin() {
+    const passwordInput = document.getElementById('adminPassword');
+    if (!passwordInput) return;
+    
+    const password = passwordInput.value;
+    
+    if (password === CONFIG.ADMIN_PASSWORD) {
+        localStorage.setItem('glitch_admin_auth', 'true');
+        showNotification('✅ Root access granted', 'success');
+        playSound('success');
+        showAdminPanel(); // Перезагружаем панель
+    } else {
+        showNotification('❌ Неверный ключ доступа', 'error');
+        playSound('error');
+        passwordInput.value = '';
+    }
+}
+
+function isAdminAuthorized() {
+    return localStorage.getItem('glitch_admin_auth') === 'true';
+}
+
+function resetVotes() {
+    if (!confirm('🚨 ВНИМАНИЕ!\n\nВы собираетесь сбросить ВСЕ голосования.\nЭто действие необратимо.\n\nПродолжить?')) {
         return;
     }
     
-    // Второе подтверждение с деталями
-    if (!confirm('1. Удалит ВСЕ записи о голосовании\n2. Обнулит счетчики ВСЕХ кандидатов\n3. НЕВОЗМОЖНО отменить\n\nВы уверены?')) {
+    const confirmation = prompt('Для подтверждения введите "GLITCH RESET":');
+    if (confirmation !== 'GLITCH RESET') {
+        showNotification('❌ Операция отменена', 'warning');
         return;
     }
-    
-    // Третье подтверждение с вводом текста
-    const confirmationText = prompt('Для подтверждения введите "СБРОСИТЬ ВСЕ ГОЛОСА" (без кавычек):');
-    
-    if (confirmationText !== 'СБРОСИТЬ ВСЕ ГОЛОСА') {
-        showNotification('❌ Операция отменена: неверный текст подтверждения', 'error');
-        return;
-    }
-    
-    // Показываем предупреждение
-    showNotification('🔄 Начинаем сброс голосов...', 'info');
     
     try {
         // Сбрасываем все голоса
@@ -857,244 +963,38 @@ async function resetAllVotes() {
             });
         });
         
-        // Сбрасываем состояние пользователя
+        // Сбрасываем историю голосований
         app.user.votedCategories = {};
-        app.user.voteStats.votesThisHour = 0;
-        app.security.voteHistory = [];
-        app.security.failedAttempts = 0;
-        app.security.blockedUntil = 0;
-        app.security.isBlocked = false;
+        app.user.votesHistory = [];
+        app.user.totalVotes = 0;
         
         // Сохраняем
-        saveLocalVotes();
+        saveData();
         
         // Обновляем интерфейс
         renderAll();
         
-        // Показываем результат
-        showNotification('✅ Все голосы успешно сброшены!', 'success');
+        showNotification('✅ Все голосования сброшены!', 'success');
         playSound('success');
         
     } catch (error) {
-        console.error('❌ Критическая ошибка сброса голосов:', error);
-        showNotification(`❌ Ошибка: ${error.message}`, 'error');
+        console.error('❌ Ошибка сброса:', error);
+        showNotification('❌ Ошибка при сбросе голосов', 'error');
     }
 }
 
-// 🛠️ НАСТРОЙКА СОБЫТИЙ
-function setupEvents() {
-    // Админ панель
-    const adminBtn = document.getElementById('adminBtn');
-    if (adminBtn) {
-        adminBtn.addEventListener('click', showAdminPanel);
-    }
-    
-    // Логин админа
-    const loginBtn = document.getElementById('loginBtn');
-    if (loginBtn) {
-        loginBtn.addEventListener('click', loginAdmin);
-    }
-    
-    // Закрытие админки
-    const closeAdmin = document.getElementById('closeAdmin');
-    if (closeAdmin) {
-        closeAdmin.addEventListener('click', closeAdminPanel);
-    }
-    
-    // Кнопки админки
-    const resetBtn = document.getElementById('resetBtn');
-    if (resetBtn) {
-        resetBtn.addEventListener('click', resetAllVotes);
-    }
-    
-    // Музыка и тема
-    const musicBtn = document.getElementById('musicBtn');
-    if (musicBtn) {
-        musicBtn.addEventListener('click', toggleMusic);
-    }
-    
-    const themeBtn = document.getElementById('themeBtn');
-    if (themeBtn) {
-        themeBtn.addEventListener('click', toggleTheme);
-    }
-    
-    // Закрытие модалок кликом вне области
-    const categoryModal = document.getElementById('categoryModal');
-    if (categoryModal) {
-        categoryModal.addEventListener('click', (e) => {
-            if (e.target === categoryModal) {
-                closeCategoryModal();
-            }
-        });
-    }
-    
-    const adminPanel = document.getElementById('adminPanel');
-    if (adminPanel) {
-        adminPanel.addEventListener('click', (e) => {
-            if (e.target === adminPanel) {
-                closeAdminPanel();
-            }
-        });
-    }
-}
-
-// 🔧 АДМИН ПАНЕЛЬ
-function showAdminPanel() {
-    const panel = document.getElementById('adminPanel');
-    if (panel) {
-        panel.style.display = 'flex';
-        updateAdminView();
-    }
-}
-
-function closeAdminPanel() {
-    const panel = document.getElementById('adminPanel');
-    if (panel) {
-        panel.style.display = 'none';
-    }
-}
-
-function loginAdmin() {
-    const passwordInput = document.getElementById('adminPass');
-    const loginSection = document.getElementById('loginSection');
-    const controlSection = document.getElementById('controlSection');
-    
-    if (!passwordInput || !loginSection || !controlSection) return;
-    
-    const password = passwordInput.value;
-    
-    if (password === CONFIG.ADMIN_PASSWORD) {
-        loginSection.style.display = 'none';
-        controlSection.style.display = 'block';
-        updateAdminView();
-        showNotification('✅ Админ доступ разрешен', 'success');
-    } else {
-        showNotification('❌ Неверный пароль', 'error');
-        passwordInput.value = '';
-    }
-}
-
-function updateAdminView() {
-    // Обновляем статистику
-    renderStats();
-    
-    // Обновляем настройки безопасности
-    updateSecurityTab();
-}
-
-function updateSecurityTab() {
-    const enableFingerprint = document.getElementById('enableFingerprint');
-    const maxVotesPerHour = document.getElementById('maxVotesPerHour');
-    
-    if (enableFingerprint) {
-        enableFingerprint.checked = app.settings.security.ENABLE_FINGERPRINT;
-    }
-    
-    if (maxVotesPerHour) {
-        maxVotesPerHour.value = app.settings.security.MAX_VOTES_PER_USER_PER_HOUR;
-    }
-}
-
-// 🎵 МУЗЫКА И ТЕМА
-function toggleMusic() {
-    const music = document.getElementById('backgroundMusic');
-    const btn = document.getElementById('musicBtn');
-    
-    if (!music || !btn) return;
-    
-    if (app.settings.music) {
-        music.pause();
-        btn.innerHTML = '<i class="fas fa-volume-mute"></i>';
-    } else {
-        music.volume = app.settings.volume;
-        music.play().catch(e => console.log('Автовоспроизведение музыки заблокировано'));
-        btn.innerHTML = '<i class="fas fa-music"></i>';
-    }
-    
-    app.settings.music = !app.settings.music;
-    saveUserSettings();
-}
-
-function toggleTheme() {
-    const btn = document.getElementById('themeBtn');
-    if (!btn) return;
-    
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    
-    document.documentElement.setAttribute('data-theme', newTheme);
-    app.settings.theme = newTheme;
-    
-    btn.innerHTML = newTheme === 'dark' ? 
-        '<i class="fas fa-moon"></i>' : 
-        '<i class="fas fa-sun"></i>';
-    
-    saveUserSettings();
-}
-
-function saveUserSettings() {
-    try {
-        localStorage.setItem('slay68_user_settings', JSON.stringify({
-            settings: app.settings,
-            userId: app.user.id
-        }));
-    } catch (e) {
-        console.log('Ошибка сохранения настроек:', e);
-    }
-}
-
-function loadUserSettings() {
-    try {
-        const saved = JSON.parse(localStorage.getItem('slay68_user_settings'));
-        if (saved) {
-            if (saved.userId) {
-                app.user.id = saved.userId;
-            }
-            
-            if (saved.settings) {
-                app.settings = { ...app.settings, ...saved.settings };
-                document.documentElement.setAttribute('data-theme', app.settings.theme);
-                
-                const themeBtn = document.getElementById('themeBtn');
-                if (themeBtn) {
-                    themeBtn.innerHTML = app.settings.theme === 'dark' ? 
-                        '<i class="fas fa-moon"></i>' : 
-                        '<i class="fas fa-sun"></i>';
-                }
-                
-                if (app.settings.music) {
-                    const music = document.getElementById('backgroundMusic');
-                    if (music) {
-                        music.volume = app.settings.volume;
-                        music.play().catch(e => console.log('Музыка не может быть воспроизведена'));
-                    }
-                }
-            }
-        }
-    } catch (e) {
-        console.log('Настройки не восстановлены:', e);
-    }
-}
-
-// 📊 ЭКСПОРТ ДАННЫХ
-async function exportData() {
+function exportData() {
     try {
         const data = {
             exportDate: new Date().toISOString(),
             categories: app.categories,
+            stats: app.stats,
             user: {
-                id: app.user.id.substring(0, 20) + '...',
-                voteStats: app.user.voteStats,
-                votedCategories: app.user.votedCategories
+                id: app.user.id,
+                totalVotes: app.user.totalVotes,
+                votedCategoriesCount: Object.keys(app.user.votedCategories).length
             },
-            security: {
-                config: app.settings.security,
-                state: {
-                    blocked: app.security.isBlocked,
-                    blockedUntil: app.security.blockedUntil,
-                    failedAttempts: app.security.failedAttempts
-                }
-            }
+            config: CONFIG
         };
         
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -1102,188 +1002,232 @@ async function exportData() {
         const a = document.createElement('a');
         
         a.href = url;
-        a.download = `slay68_export_${new Date().toISOString().slice(0, 10)}.json`;
+        a.download = `glitch_awards_export_${new Date().toISOString().slice(0, 10)}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         
         showNotification('✅ Данные экспортированы', 'success');
+        
     } catch (error) {
-        console.error('Ошибка экспорта:', error);
-        showNotification('❌ Ошибка экспорта данных', 'error');
+        console.error('❌ Ошибка экспорта:', error);
+        showNotification('❌ Ошибка при экспорте данных', 'error');
     }
 }
 
-// 🔔 УВЕДОМЛЕНИЯ
-function showNotification(message, type = 'info', duration = 3000) {
-    // Удаляем старые уведомления
-    const oldNotifications = document.querySelectorAll('.notification');
-    oldNotifications.forEach(n => n.remove());
+function clearLocalData() {
+    if (!confirm('⚠️ Очистить все локальные данные?\n\nЭто удалит все ваши голосования и кандидатов.')) {
+        return;
+    }
     
+    try {
+        localStorage.clear();
+        location.reload(); // Перезагружаем страницу
+    } catch (error) {
+        console.error('❌ Ошибка очистки:', error);
+    }
+}
+
+// ⚙️ УТИЛИТЫ
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function showNotification(message, type = 'info') {
+    // Создаём элемент уведомления
     const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
+    notification.className = `notification notification-${type}`;
     
-    const icon = type === 'success' ? 'check-circle' : 
-                 type === 'error' ? 'exclamation-circle' : 
-                 type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+    const icons = {
+        success: 'check-circle',
+        error: 'exclamation-circle',
+        warning: 'exclamation-triangle',
+        info: 'info-circle'
+    };
     
     notification.innerHTML = `
-        <i class="fas fa-${icon}"></i>
+        <i class="fas fa-${icons[type] || 'info-circle'}"></i>
         <span>${message}</span>
+    `;
+    
+    // Добавляем стили
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? 'rgba(0, 255, 136, 0.1)' : 
+                    type === 'error' ? 'rgba(255, 0, 0, 0.1)' : 
+                    type === 'warning' ? 'rgba(255, 255, 0, 0.1)' : 'rgba(0, 255, 255, 0.1)'};
+        border: 1px solid ${type === 'success' ? '#00ff88' : 
+                          type === 'error' ? '#ff0000' : 
+                          type === 'warning' ? '#ffff00' : '#00ffff'};
+        color: #fff;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        backdrop-filter: blur(10px);
+        z-index: 9999;
+        animation: slideIn 0.3s ease;
     `;
     
     document.body.appendChild(notification);
     
-    // Позиционируем
-    notification.style.top = '20px';
-    notification.style.right = '20px';
-    
+    // Удаляем через 3 секунды
     setTimeout(() => {
-        if (notification.parentNode) {
-            notification.style.opacity = '0';
-            notification.style.transform = 'translateX(100%)';
-            setTimeout(() => notification.remove(), 300);
-        }
-    }, duration);
-}
-
-function showBlockReason() {
-    const reason = checkIfBlocked();
-    if (reason) {
-        showNotification(`⛔ ${reason}`, 'warning');
-    } else {
-        showNotification('❌ Голосование недоступно', 'error');
-    }
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
 }
 
 function playSound(type) {
-    if (type === 'success') {
-        try {
-            const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3');
-            audio.volume = 0.3;
-            audio.play().catch(e => console.log('Звук заблокирован'));
-        } catch (e) {
-            console.log('Ошибка воспроизведения звука');
-        }
-    }
-}
-
-// ✨ ЧАСТИЦЫ
-function initParticles() {
-    if (window.particlesJS) {
-        particlesJS('particles-js', {
-            particles: {
-                number: { value: 80, density: { enable: true, value_area: 800 } },
-                color: { value: "#8a2be2" },
-                shape: { type: "circle" },
-                opacity: { value: 0.5, random: true },
-                size: { value: 3, random: true },
-                line_linked: {
-                    enable: true,
-                    distance: 150,
-                    color: "#00ffff",
-                    opacity: 0.2,
-                    width: 1
-                },
-                move: {
-                    enable: true,
-                    speed: 2,
-                    direction: "none",
-                    random: true,
-                    straight: false,
-                    out_mode: "out",
-                    bounce: false
-                }
-            },
-            interactivity: {
-                detect_on: "canvas",
-                events: {
-                    onhover: { enable: true, mode: "repulse" },
-                    onclick: { enable: true, mode: "push" }
-                }
-            }
-        });
-    }
-}
-
-// 📁 СОХРАНЕНИЕ И ЗАГРУЗКА ДАННЫХ
-function saveAllData() {
+    if (!app.settings.sound) return;
+    
     try {
-        const data = {
-            categories: app.categories,
-            user: app.user,
-            security: app.security,
-            settings: app.settings
-        };
+        const audio = new Audio();
+        audio.volume = app.settings.volume;
         
-        localStorage.setItem('slay68_full_data', JSON.stringify(data));
-        console.log('💾 Все данные сохранены');
-        return true;
-    } catch (error) {
-        console.error('Ошибка сохранения данных:', error);
-        return false;
-    }
-}
-
-function loadAllData() {
-    try {
-        const saved = localStorage.getItem('slay68_full_data');
-        if (saved) {
-            const data = JSON.parse(saved);
-            
-            // Восстанавливаем категории
-            Object.keys(data.categories || {}).forEach(catId => {
-                if (app.categories[catId]) {
-                    app.categories[catId].candidates = data.categories[catId].candidates || [];
-                }
-            });
-            
-            // Восстанавливаем пользователя
-            app.user.votedCategories = data.user?.votedCategories || {};
-            app.user.voteStats = data.user?.voteStats || { votesToday: 0, votesThisHour: 0, lastVoteTime: null };
-            
-            console.log('✅ Все данные загружены');
-            return true;
+        if (type === 'vote') {
+            audio.src = 'https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3';
+        } else if (type === 'success') {
+            audio.src = 'https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3';
+        } else if (type === 'error') {
+            audio.src = 'https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3';
         }
+        
+        audio.play().catch(e => console.log('Звук заблокирован'));
     } catch (error) {
-        console.error('Ошибка загрузки данных:', error);
+        console.log('Ошибка воспроизведения звука');
     }
-    return false;
 }
 
-// 🌐 АВТОСОХРАНЕНИЕ
-setInterval(() => {
-    saveLocalVotes();
-    saveUserSettings();
-}, 30000); // Каждые 30 секунд
+function updateUptime() {
+    const uptimeElement = document.getElementById('uptimeCounter');
+    if (!uptimeElement) return;
+    
+    const now = Date.now();
+    const uptime = now - app.stats.startTime;
+    
+    const hours = Math.floor(uptime / (1000 * 60 * 60));
+    const minutes = Math.floor((uptime % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((uptime % (1000 * 60)) / 1000);
+    
+    uptimeElement.textContent = 
+        `${hours.toString().padStart(2, '0')}:` +
+        `${minutes.toString().padStart(2, '0')}:` +
+        `${seconds.toString().padStart(2, '0')}`;
+}
 
-// 📱 ОБРАБОТЧИКИ ОШИБОК
-window.addEventListener('error', function(e) {
-    console.error('Глобальная ошибка:', e.error);
-    showNotification('⚠️ Произошла ошибка. Попробуйте обновить страницу.', 'warning');
-});
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
+    document.documentElement.setAttribute('data-theme', newTheme);
+    app.settings.theme = newTheme;
+    saveSettings();
+    
+    showNotification(`Тема: ${newTheme === 'dark' ? 'Тёмная' : 'Светлая'}`, 'info');
+}
 
-window.addEventListener('unhandledrejection', function(e) {
-    console.error('Необработанный промис:', e.reason);
-});
+function toggleSound() {
+    app.settings.sound = !app.settings.sound;
+    saveSettings();
+    
+    const btn = document.getElementById('soundBtn');
+    if (btn) {
+        btn.innerHTML = app.settings.sound ? 
+            '<i class="fas fa-volume-up"></i>' : 
+            '<i class="fas fa-volume-mute"></i>';
+    }
+    
+    showNotification(`Звук: ${app.settings.sound ? 'ВКЛ' : 'ВЫКЛ'}`, 'info');
+}
 
-// 🚀 ЭКСПОРТ ГЛОБАЛЬНЫХ ФУНКЦИЙ
+function loadSettings() {
+    try {
+        const saved = JSON.parse(localStorage.getItem('glitch_settings') || '{}');
+        app.settings = { ...app.settings, ...saved };
+        
+        // Применяем тему
+        if (app.settings.theme) {
+            document.documentElement.setAttribute('data-theme', app.settings.theme);
+        }
+        
+        // Обновляем кнопки
+        const soundBtn = document.getElementById('soundBtn');
+        if (soundBtn) {
+            soundBtn.innerHTML = app.settings.sound ? 
+                '<i class="fas fa-volume-up"></i>' : 
+                '<i class="fas fa-volume-mute"></i>';
+        }
+        
+    } catch (error) {
+        console.error('Ошибка загрузки настроек:', error);
+    }
+}
+
+function saveSettings() {
+    try {
+        localStorage.setItem('glitch_settings', JSON.stringify(app.settings));
+    } catch (error) {
+        console.error('Ошибка сохранения настроек:', error);
+    }
+}
+
+function loadVotes() {
+    try {
+        const saved = JSON.parse(localStorage.getItem('glitch_votes') || '{}');
+        app.user.votedCategories = saved.votedCategories || {};
+        app.user.votesHistory = saved.votesHistory || [];
+        app.user.totalVotes = saved.totalVotes || 0;
+    } catch (error) {
+        console.error('Ошибка загрузки голосов:', error);
+    }
+}
+
+function loadStats() {
+    try {
+        const saved = JSON.parse(localStorage.getItem('glitch_stats') || '{}');
+        app.stats = { ...app.stats, ...saved };
+    } catch (error) {
+        console.error('Ошибка загрузки статистики:', error);
+    }
+}
+
+function updateStats() {
+    app.stats.totalVotes = Object.values(app.categories).reduce((sum, cat) => {
+        return sum + cat.candidates.reduce((catSum, cand) => catSum + (cand.votes || 0), 0);
+    }, 0);
+    
+    saveData();
+}
+
+function startTimers() {
+    // Таймер аптайма
+    setInterval(updateUptime, 1000);
+    
+    // Автосохранение
+    setInterval(saveData, CONFIG.AUTO_SAVE_INTERVAL);
+}
+
+// 🚀 ЗАПУСК ПРИЛОЖЕНИЯ
+document.addEventListener('DOMContentLoaded', initApp);
+
+// Экспорт глобальных функций
 window.openCategoryModal = openCategoryModal;
-window.closeCategoryModal = closeCategoryModal;
-window.openAddCandidateModal = openAddCandidateModal;
-window.submitCandidate = submitCandidate;
+window.closeModal = closeModal;
 window.showAdminPanel = showAdminPanel;
-window.closeAdminPanel = closeAdminPanel;
-window.loginAdmin = loginAdmin;
-window.resetAllVotes = resetAllVotes;
-window.exportData = exportData;
-window.toggleMusic = toggleMusic;
+window.openAddCandidateForm = openAddCandidateForm;
+window.addCandidate = addCandidate;
+window.vote = vote;
 window.toggleTheme = toggleTheme;
-
-// Инициализация при загрузке
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initApp);
-} else {
-    initApp();
-}
+window.toggleSound = toggleSound;
+window.adminLogin = adminLogin;
+window.exportData = exportData;
+window.resetVotes = resetVotes;
+window.clearLocalData = clearLocalData;

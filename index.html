@@ -4,6 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SLAY 68 | Космическое Голосование</title>
+    
+    <!-- CORS политика для GitHub Pages -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self' https://*.supabase.co;
+        script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://*.supabase.co;
+        style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com;
+        font-src 'self' https://fonts.gstatic.com;
+        img-src 'self' https://*.supabase.co https://img.youtube.com data:;
+        connect-src 'self' https://*.supabase.co wss://*.supabase.co;
+        frame-src 'self' https://*.youtube.com;
+    ">
+    
+    <!-- Стили -->
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
@@ -211,7 +224,6 @@
                         <button class="tab-btn active" data-tab="candidates">Кандидаты</button>
                         <button class="tab-btn" data-tab="videos">Видео</button>
                         <button class="tab-btn" data-tab="stats">Статистика</button>
-                        <button class="tab-btn" data-tab="security">Безопасность</button>
                     </div>
 
                     <!-- Управление кандидатами -->
@@ -286,16 +298,6 @@
                                     <div class="stat-label">Уникальных голосующих</div>
                                 </div>
                             </div>
-                            
-                            <div class="stat-box">
-                                <div class="stat-icon">
-                                    <i class="fas fa-shield-alt"></i>
-                                </div>
-                                <div class="stat-data">
-                                    <div class="stat-value" id="adminBlockedAttempts">0</div>
-                                    <div class="stat-label">Блокировок</div>
-                                </div>
-                            </div>
                         </div>
 
                         <div class="admin-actions">
@@ -305,52 +307,6 @@
                             <button class="btn-action btn-danger" id="resetBtn">
                                 <i class="fas fa-trash"></i> Сбросить голоса
                             </button>
-                            <button class="btn-action" id="refreshStatsBtn">
-                                <i class="fas fa-sync-alt"></i> Обновить
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Безопасность -->
-                    <div class="tab-content" id="securityTab">
-                        <div class="security-info">
-                            <h4><i class="fas fa-shield-alt"></i> Защита от накрутки</h4>
-                            <div class="security-stats">
-                                <div class="security-stat">
-                                    <span class="stat-label">Лимит голосов/час:</span>
-                                    <span class="stat-value">50</span>
-                                </div>
-                                <div class="security-stat">
-                                    <span class="stat-label">Задержка между голосами:</span>
-                                    <span class="stat-value">1 сек</span>
-                                </div>
-                                <div class="security-stat">
-                                    <span class="stat-label">Fingerprint защита:</span>
-                                    <span class="stat-value status-active">АКТИВНА</span>
-                                </div>
-                            </div>
-                            
-                            <div class="security-controls">
-                                <h5>Управление безопасностью</h5>
-                                <div class="control-group">
-                                    <label>
-                                        <input type="checkbox" id="enableFingerprint" checked>
-                                        Включить fingerprint защиту
-                                    </label>
-                                </div>
-                                <div class="control-group">
-                                    <label>
-                                        Максимум голосов в час:
-                                        <input type="number" id="maxVotesPerHour" value="50" min="1" max="1000">
-                                    </label>
-                                </div>
-                                <button class="btn-action" id="saveSecurityBtn">
-                                    <i class="fas fa-save"></i> Сохранить настройки
-                                </button>
-                                <button class="btn-action btn-warning" id="viewLogsBtn">
-                                    <i class="fas fa-history"></i> Показать логи безопасности
-                                </button>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -382,23 +338,6 @@
             <div class="modal-content" id="videoModalContent">
                 <div id="videoPlayerContainer" style="width: 100%;"></div>
                 <div id="videoInfo" style="margin-top: 1rem; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 8px;"></div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- 🔒 Модалка безопасности -->
-    <div class="modal-overlay" id="securityModal">
-        <div class="modal modal-large">
-            <button class="modal-close" id="closeSecurity">
-                <i class="fas fa-times"></i>
-            </button>
-            <div class="modal-header">
-                <h3><i class="fas fa-shield-alt"></i> Логи безопасности</h3>
-            </div>
-            <div class="modal-content">
-                <div id="securityLogs" style="max-height: 400px; overflow-y: auto;">
-                    <!-- Логи будут здесь -->
-                </div>
             </div>
         </div>
     </div>
